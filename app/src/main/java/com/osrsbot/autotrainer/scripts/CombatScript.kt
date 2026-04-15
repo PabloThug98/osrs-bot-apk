@@ -2,7 +2,6 @@ package com.osrsbot.autotrainer.scripts
 
   import android.accessibilityservice.AccessibilityService
   import com.osrsbot.autotrainer.antiban.AntiBanManager
-  import com.osrsbot.autotrainer.detector.ImageObjectSearcher
   import com.osrsbot.autotrainer.detector.ObjectDetector
   import com.osrsbot.autotrainer.utils.BotConfig
   import com.osrsbot.autotrainer.utils.GestureHelper
@@ -26,7 +25,6 @@ package com.osrsbot.autotrainer.scripts
       private var hp = 99
       private val EAT_HP_THRESHOLD = 45
       private var missStreak = 0
-      private val imageSearcher = ImageObjectSearcher(service)
 
       // Priority monster keywords - checked in order, first match wins
       private val PRIORITY_MONSTERS = listOf(
@@ -53,17 +51,7 @@ package com.osrsbot.autotrainer.scripts
                   hp -= Random.nextInt(1, 4)
                   if (hp <= EAT_HP_THRESHOLD) { state = State.EATING; return }
 
-                  setAction("Image-searching for monster…")
-                  val imageTarget = imageSearcher.findNpc()
-                  if (imageTarget != null && imageTarget.confidence >= 0.40f) {
-                      delay(antiBan.getClickDelay())
-                      val (ox, oy) = antiBan.getClickOffset()
-                      if (!tap(imageTarget.x + ox.toFloat(), imageTarget.y + oy.toFloat())) return
-                      Logger.action("Image target selected: " + imageTarget.label)
-                      state = State.IN_COMBAT
-                      missStreak = 0
-                      return
-                  }
+                  setAction("Looking for accessible monster…")
 
                   val forceRefresh = missStreak >= 3
                   val dm = service.resources.displayMetrics
@@ -79,12 +67,12 @@ package com.osrsbot.autotrainer.scripts
                       delay(antiBan.getClickDelay())
                       val (ox, oy) = antiBan.getClickOffset()
                       if (!tap(monster.bounds.exactCenterX() + ox, monster.bounds.exactCenterY() + oy)) return
-                      Logger.action("Accessibility monster fallback: " + monster.name + " conf=" + "%.2f".format(monster.confidence))
+                      Logger.action("Monster detected by accessibility: " + monster.name + " conf=" + "%.2f".format(monster.confidence))
                       state = State.IN_COMBAT
                       missStreak = 0
                   } else {
                       missStreak++
-                      setAction("No monster image found (miss " + missStreak + "). Move camera closer.")
+                      setAction("No reliable monster found (miss " + missStreak + "). Bot is not clicking.")
                       delay(2_000L + Random.nextLong(0, 500))
                   }
               }

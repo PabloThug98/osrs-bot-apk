@@ -3,8 +3,8 @@ package com.osrsbot.autotrainer.banking
 import android.accessibilityservice.AccessibilityService
 import android.graphics.Rect
 import android.view.accessibility.AccessibilityNodeInfo
-import com.osrsbot.autotrainer.detector.ImageObjectSearcher
 import com.osrsbot.autotrainer.detector.ObjectDetector
+import com.osrsbot.autotrainer.selector.TargetStore
 import com.osrsbot.autotrainer.utils.GestureHelper
 import com.osrsbot.autotrainer.utils.Logger
 import kotlinx.coroutines.delay
@@ -42,7 +42,6 @@ class BankInteractor(
 ) {
 
     private val dm get() = service.resources.displayMetrics
-    private val imageSearcher = ImageObjectSearcher(service)
 
     // ── OSRS Mobile bank UI proportions ──────────────────────────────────────
     private val depositX get() = dm.widthPixels  * 0.50f
@@ -114,18 +113,17 @@ class BankInteractor(
             return true
         }
 
-        val imageBank = imageSearcher.findBank()
-        if (imageBank != null && imageBank.confidence >= 0.38f) {
-            Logger.action("Bank: image target @ (${imageBank.x.toInt()}, ${imageBank.y.toInt()})")
-            if (!tap(imageBank.x + jitter(), imageBank.y + jitter())) return false
+        val savedBank = TargetStore.getAll()
+            .firstOrNull { it.label.contains("bank", ignoreCase = true) }
+        if (savedBank != null) {
+            Logger.action("Bank: calibrated target @ (${savedBank.x.toInt()}, ${savedBank.y.toInt()})")
+            if (!tap(savedBank.x + jitter(), savedBank.y + jitter())) return false
             delay(Random.nextLong(2_200L, 3_500L))
             return true
         }
 
-        Logger.warn("Bank: no bank object found — tapping conservative bank area fallback.")
-        if (!tap(dm.widthPixels * 0.38f + jitter(), dm.heightPixels * 0.45f + jitter())) return false
-        delay(Random.nextLong(2_200L, 3_500L))
-        return true
+        Logger.warn("Bank: no reliable bank found. Refusing to tap random fallback.")
+        return false
     }
 
     // ── Private helpers ───────────────────────────────────────────────────────
