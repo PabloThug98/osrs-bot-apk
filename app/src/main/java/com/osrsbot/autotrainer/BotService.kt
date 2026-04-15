@@ -70,10 +70,18 @@ class BotService : LifecycleService() {
     override fun onCreate() {
         super.onCreate()
         createNotificationChannel()
-        ServiceCompat.startForeground(
-            this, 1, buildNotification("Idle"),
-            ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
-        )
+        val notification = buildNotification("Idle")
+        // FOREGROUND_SERVICE_TYPE_SPECIAL_USE only exists on Android 14+ (API 34).
+        // Calling it on Android 13 or below crashes the service and START_STICKY
+        // restarts it in a loop, triggering the 'keeps failing' system dialog.
+        if (android.os.Build.VERSION.SDK_INT >= 34) {
+            ServiceCompat.startForeground(
+                this, 1, notification,
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
+            )
+        } else {
+            startForeground(1, notification)
+        }
         overlay = OverlayManager(applicationContext)
         Logger.ok("BotService created.")
     }
