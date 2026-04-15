@@ -1,8 +1,8 @@
 package com.osrsbot.autotrainer.banking
 
 import android.accessibilityservice.AccessibilityService
-import android.graphics.Rect
-import android.view.accessibility.AccessibilityNodeInfo
+import com.osrsbot.autotrainer.capture.ScreenCaptureManager
+import com.osrsbot.autotrainer.detector.GameStateDetector
 import com.osrsbot.autotrainer.detector.ObjectDetector
 import com.osrsbot.autotrainer.selector.TargetStore
 import com.osrsbot.autotrainer.utils.GestureHelper
@@ -11,155 +11,167 @@ import kotlinx.coroutines.delay
 import kotlin.random.Random
 
 /**
- * BankInteractor — performs real screen taps to deposit items in the OSRS Mobile bank.
+ * BankInteractor v2
  *
- * ── Bank UI layout (OSRS Mobile, portrait, proportional to screen size) ──────
- *
- *   After the bank interface opens, the layout is consistent across phones:
- *
- *   ┌─────────────────────────────────────────┐
- *   │  [Tab 1] [Tab 2] …         [X close]   │  ≈ 22 % of screen height
- *   │─────────────────────────────────────────│
- *   │           Bank item grid                │
- *   │                                         │
- *   │─────────────────────────────────────────│
- *   │  [Deposit inventory] [Deposit worn]     │  ≈ 82 % of screen height
- *   └─────────────────────────────────────────┘
- *
- *   "Deposit inventory" button: ~50 % x, ~82 % y
- *   Close (X) button:           ~94 % x, ~22 % y
- *
- * ── Bank target ───────────────────────────────────────────────────────────────
- *   The interactor looks for a saved target whose label contains "bank"
- *   (case-insensitive).  If none is saved it falls back to a best-guess position
- *   in the centre of the game screen and logs a warning.
- *
- *   Tip: use the 🎯 target selector on the bank booth / chest and name it "Bank".
+ * Upgrades over v1:
+ *  - Uses GameStateDetector to CONFIRM the bank is open before tapping Deposit.
+ *    v1 would blindly tap the deposit coords after a fixed delay and often missed.
+ *  - Retries opening the bank up to MAX_OPEN_ATTEMPTS times if it doesn't open.
+ *  - Detects bank already open (no need to tap booth again).
+ *  - All taps use GestureHelper.tapHuman() for realism.
+ *  - Dedicated closeBank() polls GameStateDetector to confirm bank closed.
  */
 class BankInteractor(
     private val service: AccessibilityService,
     private val detector: ObjectDetector,
+    captureManager: ScreenCaptureManager? = null,
 ) {
+    private val dm          get() = service.resources.displayMetrics
+    private val stateDetect = captureManager?.let { GameStateDetector(it) }
 
-    private val dm get() = service.resources.displayMetrics
-
-    // ── OSRS Mobile bank UI proportions ──────────────────────────────────────
     private val depositX get() = dm.widthPixels  * 0.50f
     private val depositY get() = dm.heightPixels * 0.82f
     private val closeX   get() = dm.widthPixels  * 0.94f
     private val closeY   get() = dm.heightPixels * 0.22f
 
-    // ── Public API ────────────────────────────────────────────────────────────
+    companion object {
+        private const val MAX_OPEN_ATTEMPTS = 4
+        private const val OPEN_POLL_INTERVAL = 600L
+        private const val OPEN_MAX_WAIT_MS   = 5_000L
+    }
 
     /**
-     * Runs the full deposit sequence:
-     *   1. Tap bank booth/chest
-     *   2. Wait for bank interface to open
-     *   3. Tap "Deposit Inventory"
-     *   4. Wait for deposit animation
-     *   5. Close the bank
-     *   6. Wait for close animation
+     * Full deposit sequence with state-aware polling:
+     *  1. Open bank (retry up to MAX_OPEN_ATTEMPTS).
+     *  2. Poll GameStateDetector until BANK_OPEN confirmed.
+     *  3. Tap Deposit Inventory.
+     *  4. Wait for deposit.
+     *  5. Close bank.
+     *  6. Poll until bank closed.
      *
-     * Returns true on success.  Returns false only if there is no bank target
-     * AND the interactor is configured to fail rather than guess.
-     *
-     * Total expected duration: ~5–9 seconds.
+     * Returns true on success.
      */
     suspend fun depositInventory(): Boolean {
-        if (!openBank()) return false
+        // Skip opening if bank is already open
+        val alreadyOpen = stateDetect?.isBankOpen() ?: false
+        if (!alreadyOpen && !openBank()) return false
 
-        // 2. Wait for bank to open (walk-click animation + server response)
-        val openWait = Random.nextLong(2_200L, 3_500L)
-        Logger.info("Bank: waiting ${openWait}ms for interface to open…")
-        delay(openWait)
+        // Wait for bank interface with polling (up to OPEN_MAX_WAIT_MS)
+        val opened = waitForBankOpen()
+        if (!opened) {
+            Logger.warn("BankInteractor: bank did not open after ${OPEN_MAX_WAIT_MS}ms — giving up")
+            return false
+        }
+        Logger.ok("BankInteractor: bank open ✓")
 
-        // 3. Tap "Deposit Inventory"
-        val depositedByText = tapFirstNodeContaining(
-            listOf("deposit inventory", "deposit carried", "deposit all"),
-        )
+        // Deposit inventory
+        delay(Random.nextLong(350L, 650L))
+        val depositedByText = tapNodeContaining(listOf("deposit inventory", "deposit carried", "deposit all"))
         if (!depositedByText) {
-            if (!tap(depositX + jitter(), depositY + jitter())) return false
-            Logger.ok("Bank: tapped Deposit Inventory fallback @ (${depositX.toInt()}, ${depositY.toInt()})")
+            Logger.info("BankInteractor: falling back to pixel deposit tap")
+            GestureHelper.tapHuman(service, depositX + Random.nextInt(-8, 8), depositY + Random.nextInt(-8, 8))
         }
+        delay(Random.nextLong(800L, 1_400L))
 
-        // 4. Wait for deposit animation
-        delay(Random.nextLong(900L, 1_500L))
-
-        // 5. Close the bank interface
-        val closedByText = tapFirstNodeContaining(listOf("close", "exit"))
-        if (!closedByText) {
-            if (!tap(closeX + jitter(), closeY + jitter())) return false
-            Logger.ok("Bank: closed interface fallback @ (${closeX.toInt()}, ${closeY.toInt()})")
-        }
-
-        // 6. Wait for close animation
-        delay(Random.nextLong(700L, 1_200L))
-
+        // Close bank
+        closeBank()
         return true
     }
 
-    /**
-     * Convenience: open the bank without depositing — useful if you need
-     * to withdraw something (future scripts can extend this).
-     */
-    suspend fun openBank(): Boolean {
-        val detectedBank = detector.detectObjects("woodcutting", true)
-            .filter { it.name.contains("bank", ignoreCase = true) || it.name.contains("chest", ignoreCase = true) }
-            .maxByOrNull { it.confidence }
-        if (detectedBank != null) {
-            Logger.action("Bank: accessibility target ${detectedBank.name}")
-            if (!tap(detectedBank.bounds.exactCenterX() + jitter(), detectedBank.bounds.exactCenterY() + jitter())) return false
-            delay(Random.nextLong(2_200L, 3_500L))
-            return true
-        }
-
-        val savedBank = TargetStore.getAll()
-            .firstOrNull { it.label.contains("bank", ignoreCase = true) }
-        if (savedBank != null) {
-            Logger.action("Bank: calibrated target @ (${savedBank.x.toInt()}, ${savedBank.y.toInt()})")
-            if (!tap(savedBank.x + jitter(), savedBank.y + jitter())) return false
-            delay(Random.nextLong(2_200L, 3_500L))
-            return true
-        }
-
-        Logger.warn("Bank: no reliable bank found. Refusing to tap random fallback.")
-        return false
-    }
-
-    // ── Private helpers ───────────────────────────────────────────────────────
-
-    private fun jitter(range: Float = 12f) = Random.nextFloat() * range * 2f - range
-
-    private suspend fun tap(x: Float, y: Float): Boolean =
-        GestureHelper.tap(service, x, y, Random.nextLong(65L, 120L))
-
-    private suspend fun tapFirstNodeContaining(keywords: List<String>): Boolean {
-        val root = service.rootInActiveWindow ?: return false
-        val match = findNode(root, keywords.map { it.lowercase() })
-        if (match != null) {
-            val bounds = Rect()
-            match.getBoundsInScreen(bounds)
-            if (!bounds.isEmpty) {
-                Logger.action("Bank UI: tapping '${keywords.first()}' by text")
-                return tap(bounds.exactCenterX() + jitter(6f), bounds.exactCenterY() + jitter(6f))
+    /** Opens the bank by tapping the booth. Retries on failure. */
+    private suspend fun openBank(): Boolean {
+        for (attempt in 1..MAX_OPEN_ATTEMPTS) {
+            val bankTarget = TargetStore.nextTargetWhere { it.label.contains("bank", ignoreCase = true) }
+            if (bankTarget != null) {
+                Logger.info("BankInteractor: tapping saved bank target (attempt $attempt)")
+                delay(antiBanDelay())
+                GestureHelper.tapHuman(service, bankTarget.x, bankTarget.y)
+            } else {
+                val detected = detector.detectObjects("woodcutting", true)
+                    .filter { it.name.contains("bank", ignoreCase = true) }
+                    .maxByOrNull { it.confidence }
+                if (detected != null) {
+                    Logger.info("BankInteractor: tapping detected bank @ (${detected.bounds.centerX()},${detected.bounds.centerY()}) (attempt $attempt)")
+                    delay(antiBanDelay())
+                    GestureHelper.tapHuman(service, detected.bounds.exactCenterX(), detected.bounds.exactCenterY())
+                } else {
+                    Logger.warn("BankInteractor: no bank target — using accessibility node")
+                    val nodeFound = tapNodeContaining(listOf("bank booth", "bank chest", "bank counter", "bank"))
+                    if (!nodeFound) {
+                        Logger.warn("BankInteractor: no bank found at all (attempt $attempt)")
+                        delay(1_500L); continue
+                    }
+                }
             }
+            // Short wait then check if open
+            delay(OPEN_POLL_INTERVAL)
+            if (stateDetect?.isBankOpen() == true) return true
+            Logger.info("BankInteractor: bank not open yet, retrying...")
+            delay(800L)
+        }
+        return stateDetect?.isBankOpen() ?: true // if no detector, assume success
+    }
+
+    /** Polls GameStateDetector until bank is open or timeout. */
+    private suspend fun waitForBankOpen(): Boolean {
+        if (stateDetect == null) {
+            delay(Random.nextLong(2_200L, 3_500L))
+            return true
+        }
+        val deadline = System.currentTimeMillis() + OPEN_MAX_WAIT_MS
+        while (System.currentTimeMillis() < deadline) {
+            stateDetect.invalidateCache()
+            if (stateDetect.isBankOpen()) return true
+            delay(OPEN_POLL_INTERVAL)
         }
         return false
     }
 
-    private fun findNode(node: AccessibilityNodeInfo, keywords: List<String>): AccessibilityNodeInfo? {
-        val label = listOf(
-            node.text?.toString().orEmpty(),
-            node.contentDescription?.toString().orEmpty(),
-        ).joinToString(" ").lowercase()
-
-        if (node.isVisibleToUser && keywords.any { label.contains(it) }) return node
-
-        for (i in 0 until node.childCount) {
-            val child = node.getChild(i) ?: continue
-            val found = findNode(child, keywords)
-            if (found != null) return found
+    /** Closes the bank and polls until it's gone from screen. */
+    private suspend fun closeBank() {
+        Logger.info("BankInteractor: closing bank")
+        GestureHelper.tapHuman(service, closeX + Random.nextInt(-6, 6), closeY + Random.nextInt(-6, 6))
+        delay(500L)
+        if (stateDetect == null) { delay(700L); return }
+        val deadline = System.currentTimeMillis() + 3_000L
+        while (System.currentTimeMillis() < deadline) {
+            stateDetect.invalidateCache()
+            if (!stateDetect.isBankOpen()) {
+                Logger.ok("BankInteractor: bank closed ✓")
+                return
+            }
+            delay(400L)
         }
-        return null
+        Logger.warn("BankInteractor: bank still showing after close tap")
     }
+
+    private suspend fun tapNodeContaining(keywords: List<String>): Boolean {
+        val root = service.rootInActiveWindow ?: return false
+        fun search(node: android.view.accessibility.AccessibilityNodeInfo): Boolean {
+            val text = listOf(
+                node.contentDescription?.toString(),
+                node.text?.toString()
+            ).filterNotNull().joinToString(" ").lowercase()
+            if (keywords.any { text.contains(it) }) {
+                val bounds = android.graphics.Rect()
+                node.getBoundsInScreen(bounds)
+                if (!bounds.isEmpty) {
+                    kotlinx.coroutines.runBlocking {
+                        delay(antiBanDelay())
+                        GestureHelper.tapHuman(service, bounds.exactCenterX(), bounds.exactCenterY())
+                    }
+                    return true
+                }
+            }
+            for (i in 0 until node.childCount) {
+                val child = node.getChild(i) ?: continue
+                if (search(child)) { child.recycle(); return true }
+                child.recycle()
+            }
+            return false
+        }
+        return search(root)
+    }
+
+    private fun antiBanDelay(): Long = Random.nextLong(180L, 420L)
 }
