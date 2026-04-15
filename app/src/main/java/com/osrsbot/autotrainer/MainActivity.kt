@@ -8,9 +8,13 @@ import android.net.Uri
 import android.os.Bundle
 import android.os.IBinder
 import android.provider.Settings
+import android.view.View
+import android.widget.AdapterView
+import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.RadioGroup
 import android.widget.SeekBar
+import android.widget.Spinner
 import android.widget.Switch
 import android.widget.TextView
 import android.widget.Toast
@@ -22,6 +26,19 @@ class MainActivity : AppCompatActivity() {
 
     private var botService: BotService? = null
     private var serviceBound = false
+    private var selectedWalkerArea = "none"
+
+    // ── Walker area display labels and their internal IDs ─────────────────────
+    private val walkerAreas = listOf(
+        "None (stay put — use 🎯 to tap trees)"  to "none",
+        "🏰 Lumbridge — Trees NE of castle"       to "lumbridge",
+        "🌊 Draynor Village — Willows by bank"    to "draynor",
+        "🏙️ Varrock West — Trees NW of bank"      to "varrock_west",
+        "🏙️ Varrock East — Trees NE of bank"      to "varrock_east",
+        "⚔️ Falador — Park trees (centre)"         to "falador",
+        "🧙 Edgeville — Trees SE of bank"         to "edgeville",
+        "🪓 Barbarian Village → Edgeville bank"   to "barbarian",
+    )
 
     private val serviceConnection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName, service: IBinder) {
@@ -82,7 +99,7 @@ class MainActivity : AppCompatActivity() {
 
         // ── Stop-time seekbar ──
         val seekTime = findViewById<SeekBar>(R.id.seekStopTime)
-        val tvTime = findViewById<TextView>(R.id.tvStopTime)
+        val tvTime   = findViewById<TextView>(R.id.tvStopTime)
         seekTime.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(sb: SeekBar, v: Int, user: Boolean) {
                 tvTime.text = "Stop after: ${v.coerceAtLeast(10)} minutes"
@@ -93,7 +110,7 @@ class MainActivity : AppCompatActivity() {
 
         // ── Stop-actions seekbar ──
         val seekAct = findViewById<SeekBar>(R.id.seekStopActions)
-        val tvAct = findViewById<TextView>(R.id.tvStopActions)
+        val tvAct   = findViewById<TextView>(R.id.tvStopActions)
         seekAct.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(sb: SeekBar, v: Int, user: Boolean) {
                 tvAct.text = "Stop after: ${v.coerceAtLeast(50)} actions"
@@ -101,6 +118,38 @@ class MainActivity : AppCompatActivity() {
             override fun onStartTrackingTouch(sb: SeekBar) {}
             override fun onStopTrackingTouch(sb: SeekBar) {}
         })
+
+        // ── Walker area spinner ──
+        setupWalkerSpinner()
+    }
+
+    private fun setupWalkerSpinner() {
+        val spinner  = findViewById<Spinner>(R.id.spinnerWalkerArea)
+        val tvNote   = findViewById<TextView>(R.id.tvWalkerNote)
+        val labels   = walkerAreas.map { it.first }
+
+        val adapter  = ArrayAdapter(this, android.R.layout.simple_spinner_item, labels).also {
+            it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        }
+        spinner.adapter = adapter
+
+        spinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: AdapterView<*>, view: View?, pos: Int, id: Long) {
+                selectedWalkerArea = walkerAreas[pos].second
+                tvNote.text = when (selectedWalkerArea) {
+                    "none"        -> "None — bot stays where you put it. Use 🎯 to tap trees manually."
+                    "lumbridge"   -> "Bot walks: Lumbridge bank ↔ trees NE of castle via minimap."
+                    "draynor"     -> "Bot walks: Draynor bank ↔ willows south of bank via minimap."
+                    "varrock_west"-> "Bot walks: Varrock West bank ↔ trees NW via minimap."
+                    "varrock_east"-> "Bot walks: Varrock East bank ↔ trees NE via minimap."
+                    "falador"     -> "Bot walks: Falador West bank ↔ park trees via minimap."
+                    "edgeville"   -> "Bot walks: Edgeville bank ↔ trees SE via minimap."
+                    "barbarian"   -> "Bot walks: Barbarian Village trees ↔ Edgeville bank via minimap."
+                    else          -> ""
+                }
+            }
+            override fun onNothingSelected(parent: AdapterView<*>) {}
+        }
     }
 
     private fun applyConfig() {
@@ -111,17 +160,18 @@ class MainActivity : AppCompatActivity() {
             else               -> "chocolate"
         }
         val config = BotConfig(
-            scriptId           = scriptId,
-            antiBanBreaks      = findViewById<Switch>(R.id.switchBreaks).isChecked,
-            stopOnPlayerNearby = findViewById<Switch>(R.id.switchStopPlayer).isChecked,
-            humanLikeMouse     = findViewById<Switch>(R.id.switchHuman).isChecked,
-            stopAfterTime      = findViewById<Switch>(R.id.switchStopTime).isChecked,
-            stopAfterMinutes   = findViewById<SeekBar>(R.id.seekStopTime).progress.coerceAtLeast(10),
-            stopAfterActions   = findViewById<Switch>(R.id.switchStopActions).isChecked,
+            scriptId             = scriptId,
+            antiBanBreaks        = findViewById<Switch>(R.id.switchBreaks).isChecked,
+            stopOnPlayerNearby   = findViewById<Switch>(R.id.switchStopPlayer).isChecked,
+            humanLikeMouse       = findViewById<Switch>(R.id.switchHuman).isChecked,
+            stopAfterTime        = findViewById<Switch>(R.id.switchStopTime).isChecked,
+            stopAfterMinutes     = findViewById<SeekBar>(R.id.seekStopTime).progress.coerceAtLeast(10),
+            stopAfterActions     = findViewById<Switch>(R.id.switchStopActions).isChecked,
             stopAfterActionCount = findViewById<SeekBar>(R.id.seekStopActions).progress.coerceAtLeast(50),
+            walkerArea           = selectedWalkerArea,
         )
         botService?.updateConfig(config)
-        Logger.info("Config applied: $config")
+        Logger.info("Config applied: script=$scriptId area=$selectedWalkerArea")
     }
 
     private fun updatePermissionStatus() {
@@ -131,9 +181,9 @@ class MainActivity : AppCompatActivity() {
         val tvOverlay = findViewById<TextView>(R.id.tvOverlayStatus)
         val tvAccess  = findViewById<TextView>(R.id.tvAccessibilityStatus)
 
-        tvOverlay.text      = if (overlayOk) "✅ Granted"     else "❌ Not Granted"
+        tvOverlay.text = if (overlayOk) "✅ Granted"  else "❌ Not Granted"
         tvOverlay.setTextColor(getColor(if (overlayOk) R.color.green else R.color.red))
-        tvAccess.text       = if (accessOk)  "✅ Enabled"     else "❌ Not Enabled"
+        tvAccess.text  = if (accessOk)  "✅ Enabled"  else "❌ Not Enabled"
         tvAccess.setTextColor(getColor(if (accessOk) R.color.green else R.color.red))
 
         val allOk = overlayOk && accessOk
@@ -142,9 +192,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun requestMissingPermissions() {
-        if (!Settings.canDrawOverlays(this)) {
-            requestOverlayPermission(); return
-        }
+        if (!Settings.canDrawOverlays(this)) { requestOverlayPermission(); return }
         if (!OSRSAccessibilityService.isRunning) {
             startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)); return
         }
@@ -152,11 +200,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun requestOverlayPermission() {
-        val intent = Intent(
-            Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-            Uri.parse("package:$packageName")
-        )
-        startActivity(intent)
+        startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+            Uri.parse("package:$packageName")))
     }
 
     private fun updateStatusUI(status: String, running: Boolean) {
@@ -171,10 +216,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
-        if (serviceBound) {
-            unbindService(serviceConnection)
-            serviceBound = false
-        }
+        if (serviceBound) { unbindService(serviceConnection); serviceBound = false }
         super.onDestroy()
     }
 }
