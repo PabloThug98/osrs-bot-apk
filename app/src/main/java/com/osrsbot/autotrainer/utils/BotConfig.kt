@@ -36,10 +36,12 @@ package com.osrsbot.autotrainer.utils
       val playerWoodcuttingLevel: Int = 1,
       val playerFishingLevel: Int     = 1,
       val playerCombatLevel: Int      = 3,
+    val playerMiningLevel: Int     = 1,
 
       // ── Woodcutting axe type — affects log rate ───────────────────────────────
       // Values: "bronze", "iron", "steel", "black", "mithril", "adamant", "rune", "dragon", "crystal"
       val axeType: String = "iron",
+    val oreType: String = "iron",
 
       // ── Detection — minimum confidence score (0.0-1.0) to act on ─────────────
       val detectConfidenceMin: Float = 0.50f,
@@ -51,6 +53,7 @@ package com.osrsbot.autotrainer.utils
           "woodcutting" to Triple("Woodcutting Bot",     38,   50),
           "fishing"     to Triple("Fishing Bot",          40,   40),
           "combat"      to Triple("Combat Trainer",       60,   20),
+        "mining"      to Triple("Mining Bot",           35,   80),
       )
       fun name(id: String)  = scripts[id]?.first ?: "Unknown"
       fun xpPer(id: String) = scripts[id]?.second ?: 0
