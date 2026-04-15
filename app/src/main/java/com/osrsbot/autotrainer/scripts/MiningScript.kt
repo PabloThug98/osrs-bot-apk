@@ -4,6 +4,7 @@ import android.accessibilityservice.AccessibilityService
 import com.osrsbot.autotrainer.antiban.AntiBanManager
 import com.osrsbot.autotrainer.banking.BankInteractor
 import com.osrsbot.autotrainer.detector.InventoryDetector
+import com.osrsbot.autotrainer.capture.ScreenCaptureManager
 import com.osrsbot.autotrainer.detector.ObjectDetector
 import com.osrsbot.autotrainer.selector.TargetStore
 import com.osrsbot.autotrainer.utils.BotConfig
@@ -46,7 +47,7 @@ class MiningScript(
     private var lastCy         = -1
 
     private val dm        get() = service.resources.displayMetrics
-    private val capture         = detector.pixelDetector?.capture
+    private val capture: ScreenCaptureManager? = detector.pixelDetector?.capture
     private val invDetect       = capture?.let { InventoryDetector(it) }
     private val walker          = WalkerManager(service)
     private val banker          = BankInteractor(service, detector, capture)

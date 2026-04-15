@@ -419,6 +419,41 @@
                                 android:paddingStart="24dp" />
                         </LinearLayout>
 
+                        <!-- Mining -->
+                        <LinearLayout
+                            android:id="@+id/cardMining"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical"
+                            android:background="@drawable/script_card_bg"
+                            android:padding="12dp">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="⛏️"
+                                android:textSize="26sp"
+                                android:layout_marginBottom="4dp" />
+
+                            <RadioButton
+                                android:id="@+id/rbMining"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Mining"
+                                android:textColor="@color/text_primary"
+                                android:textSize="12sp"
+                                android:textStyle="bold"
+                                android:buttonTint="@color/gold" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Ore + Bank"
+                                android:textColor="@color/red"
+                                android:textSize="10sp"
+                                android:paddingStart="24dp" />
+                        </LinearLayout>
+
                     </RadioGroup>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>

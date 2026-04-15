@@ -1,15 +1,15 @@
 package com.osrsbot.autotrainer.utils
 
-  /**
-   * BotConfig — all user-configurable settings for the bot.
-   *
-   * New in v2:
-   *  - playerWoodcuttingLevel / playerFishingLevel / playerCombatLevel
-   *    Used by AntiBanManager to produce level-appropriate action timings.
-   *  - axeType — affects woodcutting log acquisition rate.
-   *  - detectConfidenceMin — minimum detection confidence to act on.
-   */
-  data class BotConfig(
+/**
+ * BotConfig — all user-configurable settings for the bot.
+ *
+ * New in v2:
+ *  - playerWoodcuttingLevel / playerFishingLevel / playerCombatLevel
+ *    Used by AntiBanManager to produce level-appropriate action timings.
+ *  - axeType — affects woodcutting log acquisition rate.
+ *  - detectConfidenceMin — minimum detection confidence to act on.
+ */
+data class BotConfig(
       val scriptId: String = "chocolate",
 
       // ── Antiban ──────────────────────────────────────────────────────────────
@@ -45,9 +45,9 @@ package com.osrsbot.autotrainer.utils
 
       // ── Detection — minimum confidence score (0.0-1.0) to act on ─────────────
       val detectConfidenceMin: Float = 0.50f,
-  )
+)
 
-  object ScriptInfo {
+object ScriptInfo {
       val scripts = mapOf(
           "chocolate"   to Triple("Chocolate Dust Maker", 0,  180),
           "woodcutting" to Triple("Woodcutting Bot",     38,   50),
@@ -58,10 +58,10 @@ package com.osrsbot.autotrainer.utils
       fun name(id: String)  = scripts[id]?.first ?: "Unknown"
       fun xpPer(id: String) = scripts[id]?.second ?: 0
       fun gpPer(id: String) = scripts[id]?.third ?: 0
-  }
+}
 
-  /** Axe tier → (minLevel, successChanceBonus) */
-  object AxeInfo {
+/** Axe tier → (minLevel, successChanceBonus) */
+object AxeInfo {
       data class AxeTier(val minLevel: Int, val speedBonus: Float)
       val tiers = mapOf(
           "bronze"  to AxeTier(1,   0.00f),
@@ -75,5 +75,4 @@ package com.osrsbot.autotrainer.utils
           "crystal" to AxeTier(71,  0.40f),
       )
       fun speedBonus(axeType: String): Float = tiers[axeType]?.speedBonus ?: 0f
-  }
-  
+}

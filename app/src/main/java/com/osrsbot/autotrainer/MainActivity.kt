@@ -148,6 +148,7 @@ class MainActivity : AppCompatActivity() {
             ScriptOption(R.id.rbWoodcutting, R.id.cardWoodcutting, "woodcutting"),
             ScriptOption(R.id.rbFishing, R.id.cardFishing, "fishing"),
             ScriptOption(R.id.rbCombat, R.id.cardCombat, "combat"),
+            ScriptOption(R.id.rbMining, R.id.cardMining, "mining"),
         )
         for (option in options) {
             val rb = findViewById<RadioButton>(option.radioId)

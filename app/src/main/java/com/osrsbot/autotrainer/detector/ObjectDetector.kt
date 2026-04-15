@@ -2,6 +2,7 @@ package com.osrsbot.autotrainer.detector
 
 import android.accessibilityservice.AccessibilityService
 import android.graphics.Rect
+import com.osrsbot.autotrainer.capture.ScreenCaptureManager
 import com.osrsbot.autotrainer.utils.Logger
 
 data class DetectedObject(
@@ -25,7 +26,12 @@ data class DetectedObject(
  *  - Visibility/screen clipping guard to avoid tapping off-screen or hidden nodes
  *  - Label normalization for OSRS-style action text such as "Chop down Oak tree"
  */
-class ObjectDetector(private val service: AccessibilityService) {
+class ObjectDetector(
+    private val service: AccessibilityService,
+    capture: ScreenCaptureManager? = null,
+) {
+    /** Exposes the PixelDetector (backed by ScreenCaptureManager) to scripts. */
+    val pixelDetector: PixelDetector? = capture?.let { PixelDetector(it) }
 
     companion object {
         private const val CACHE_TTL_MS       = 800L

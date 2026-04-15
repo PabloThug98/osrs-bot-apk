@@ -5,6 +5,7 @@ import com.osrsbot.autotrainer.antiban.AntiBanManager
 import com.osrsbot.autotrainer.banking.BankInteractor
 import com.osrsbot.autotrainer.detector.GameStateDetector
 import com.osrsbot.autotrainer.detector.InventoryDetector
+import com.osrsbot.autotrainer.capture.ScreenCaptureManager
 import com.osrsbot.autotrainer.detector.ObjectDetector
 import com.osrsbot.autotrainer.selector.TargetStore
 import com.osrsbot.autotrainer.utils.BotConfig
@@ -49,7 +50,7 @@ class ChocolateDustScript(
     private var state = State.FIND_KNIFE
 
     private val dm        get() = service.resources.displayMetrics
-    private val capture         = detector.pixelDetector?.capture
+    private val capture: ScreenCaptureManager? = detector.pixelDetector?.capture
     private val invDetect       = capture?.let { InventoryDetector(it) }
     private val stateDetect     = capture?.let { GameStateDetector(it) }
     private val banker          = BankInteractor(service, detector, capture)

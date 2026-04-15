@@ -4,6 +4,7 @@ import android.accessibilityservice.AccessibilityService
 import com.osrsbot.autotrainer.antiban.AntiBanManager
 import com.osrsbot.autotrainer.banking.BankInteractor
 import com.osrsbot.autotrainer.detector.InventoryDetector
+import com.osrsbot.autotrainer.capture.ScreenCaptureManager
 import com.osrsbot.autotrainer.detector.ObjectDetector
 import com.osrsbot.autotrainer.detector.RunEnergyMonitor
 import com.osrsbot.autotrainer.selector.TargetStore
@@ -50,7 +51,7 @@ class FishingScript(
     private var lastSpotY   = 0f
 
     private val dm      get() = service.resources.displayMetrics
-    private val capture       = detector.pixelDetector?.capture
+    private val capture: ScreenCaptureManager? = detector.pixelDetector?.capture
     private val invDetect     = capture?.let { InventoryDetector(it) }
     private val runMonitor    = capture?.let { RunEnergyMonitor(it) }
     private val walker        = WalkerManager(service)

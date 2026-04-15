@@ -4,6 +4,7 @@ import android.accessibilityservice.AccessibilityService
 import com.osrsbot.autotrainer.antiban.AntiBanManager
 import com.osrsbot.autotrainer.detector.HpMonitor
 import com.osrsbot.autotrainer.detector.InventoryDetector
+import com.osrsbot.autotrainer.capture.ScreenCaptureManager
 import com.osrsbot.autotrainer.detector.ObjectDetector
 import com.osrsbot.autotrainer.utils.BotConfig
 import com.osrsbot.autotrainer.utils.GestureHelper
@@ -51,7 +52,7 @@ class CombatScript(
     private var missStreak = 0
 
     private val dm       get() = service.resources.displayMetrics
-    private val capture  = detector.pixelDetector?.capture
+    private val capture: ScreenCaptureManager? = detector.pixelDetector?.capture
     private val hpMon    = capture?.let { HpMonitor(it) }
     private val invDetect = capture?.let { InventoryDetector(it) }
 

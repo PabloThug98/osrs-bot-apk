@@ -1,23 +1,23 @@
 package com.osrsbot.autotrainer.overlay
 
-  import android.content.Context
-  import android.graphics.PixelFormat
-  import android.os.Build
-  import android.view.Gravity
-  import android.view.LayoutInflater
-  import android.view.MotionEvent
-  import android.view.View
-  import android.view.WindowManager
-  import android.widget.Button
-  import android.widget.ImageButton
-  import android.widget.TextView
-  import android.widget.Toast
-  import com.osrsbot.autotrainer.R
-  import com.osrsbot.autotrainer.selector.TargetSelectorOverlay
-  import com.osrsbot.autotrainer.selector.TargetStore
-  import com.osrsbot.autotrainer.utils.Logger
+import android.content.Context
+import android.graphics.PixelFormat
+import android.os.Build
+import android.view.Gravity
+import android.view.LayoutInflater
+import android.view.MotionEvent
+import android.view.View
+import android.view.WindowManager
+import android.widget.Button
+import android.widget.ImageButton
+import android.widget.TextView
+import android.widget.Toast
+import com.osrsbot.autotrainer.R
+import com.osrsbot.autotrainer.selector.TargetSelectorOverlay
+import com.osrsbot.autotrainer.selector.TargetStore
+import com.osrsbot.autotrainer.utils.Logger
 
-  class OverlayManager(private val context: Context) {
+class OverlayManager(private val context: Context) {
 
       private val windowManager = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
       private var overlayView: View? = null
@@ -201,5 +201,4 @@ package com.osrsbot.autotrainer.overlay
               updateTargetCount()
           }
       }
-  }
-  
+}

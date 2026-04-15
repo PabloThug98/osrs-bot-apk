@@ -50,12 +50,10 @@ class WoodcuttingScript(
 
     private val walker    = WalkerManager(service)
     private val banker    = BankInteractor(service, detector)
-    private val invDetect = InventoryDetector(
-        (detector.pixelDetector?.capture) ?: run {
-            Logger.warn("WoodcuttingScript: no ScreenCaptureManager — inventory pixel detection unavailable")
-            null
-        }.let { return@let it }!!
-    )
+    private val invDetect: InventoryDetector? =
+        detector.pixelDetector?.capture?.let { InventoryDetector(it) }.also {
+            if (it == null) Logger.warn("WoodcuttingScript: no ScreenCaptureManager — inventory pixel detection unavailable")
+        }
 
     var treeLocation: WalkerManager.Location? = null
     var bankLocation: WalkerManager.Location? = null
@@ -65,7 +63,7 @@ class WoodcuttingScript(
         state          = State.CLICK_TREE
         treeGoneStreak = 0
         detector.invalidateCache()
-        invDetect.invalidateCache()
+        invDetect?.invalidateCache()
         super.onStuck()
     }
 
@@ -92,7 +90,7 @@ class WoodcuttingScript(
             // ── CLICK_TREE ────────────────────────────────────────────────
             State.CLICK_TREE -> {
                 // Real inventory check
-                val occupied = invDetect.countOccupied()
+                val occupied = (invDetect?.countOccupied() ?: 0)
                 if (occupied >= 27) { state = State.WALK_TO_BANK; return }
 
                 setAction("Finding tree... (inv: $occupied/28)")
@@ -134,8 +132,8 @@ class WoodcuttingScript(
                 }
                 completeAction(XP_PER_LOG, GP_PER_LOG)
                 treeGoneStreak = 0
-                invDetect.invalidateCache()
-                val occupied = invDetect.countOccupied()
+                invDetect?.invalidateCache()
+                val occupied = (invDetect?.countOccupied() ?: 0)
                 Logger.ok("Log #$actions | Inv: $occupied/28 | XP: $xpGained")
                 delay(antiBan.getActionDelay())
 
@@ -173,7 +171,7 @@ class WoodcuttingScript(
                 setAction("Banking logs...")
                 val ok = banker.depositInventory()
                 if (ok) {
-                    invDetect.invalidateCache()
+                    invDetect?.invalidateCache()
                     completeAction()
                     Logger.ok("Banked — total $actions logs | $xpGained XP")
                 } else {
