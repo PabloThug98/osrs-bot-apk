@@ -30,6 +30,8 @@ jobs:
 
       - name: Build Debug APK
         run: ./gradlew assembleDebug --no-daemon --stacktrace
+        env:
+          GRADLE_OPTS: '-Xmx2048m -Dfile.encoding=UTF-8'
 
       - name: Copy APK to release folder
         run: |
@@ -60,10 +62,10 @@ jobs:
             ### Install steps
             1. Tap OSRS-Bot-v2.apk below to download
             2. Android: Settings -> Security -> Allow unknown sources
-            3. Install the APK
-            4. Open OSRS Bot, grant Overlay + Accessibility permissions
+            3. Install the APK, open OSRS Bot
+            4. Grant Overlay + Accessibility permissions
             5. Pick script, tap Launch Floating Overlay
-            6. Switch to OSRS, tap TARGET to mark what to click, then START
+            6. Switch to OSRS, tap TARGET to mark objects, then START
 
             ### v2.0 improvements
             - ObjectDetector v2: 80+ keywords, confidence scoring, deduplication, caching
