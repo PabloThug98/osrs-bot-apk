@@ -1,324 +1,246 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!--
-  Floating overlay panel — shown on top of the OSRS game.
-  Compact dark-glass card with gold border glow + drag handle.
-  Width = 240dp so it fits on phone screens without covering too much game area.
--->
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/overlayRoot"
-    android:layout_width="240dp"
-    android:layout_height="wrap_content"
-    android:orientation="vertical"
-    android:background="@drawable/overlay_bg"
-    android:elevation="16dp">
+  <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+      android:id="@+id/overlayRoot"
+      android:layout_width="240dp"
+      android:layout_height="wrap_content"
+      android:orientation="vertical"
+      android:background="@drawable/overlay_bg"
+      android:elevation="16dp">
 
-    <!-- ══ HEADER / DRAG HANDLE ════════════════════════════════════ -->
-    <LinearLayout
-        android:id="@+id/overlayHeader"
-        android:layout_width="match_parent"
-        android:layout_height="44dp"
-        android:orientation="horizontal"
-        android:gravity="center_vertical"
-        android:paddingStart="12dp"
-        android:paddingEnd="8dp"
-        android:background="#20FFFFFF">
+      <!-- HEADER / DRAG HANDLE -->
+      <LinearLayout
+          android:id="@+id/overlayHeader"
+          android:layout_width="match_parent"
+          android:layout_height="44dp"
+          android:orientation="horizontal"
+          android:gravity="center_vertical"
+          android:paddingStart="12dp"
+          android:paddingEnd="8dp"
+          android:background="#20FFFFFF">
 
-        <!-- Drag icon -->
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="⠿"
-            android:textColor="#44FFB800"
-            android:textSize="16sp"
-            android:layout_marginEnd="6dp" />
+          <!-- Drag icon — ONLY this triggers drag -->
+          <TextView
+              android:id="@+id/dragHandle"
+              android:layout_width="wrap_content"
+              android:layout_height="match_parent"
+              android:paddingEnd="8dp"
+              android:paddingStart="4dp"
+              android:gravity="center_vertical"
+              android:text="&#x2807;"
+              android:textColor="#AAFFB800"
+              android:textSize="20sp" />
 
-        <TextView
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="⚔  OSRS BOT"
-            android:textColor="@color/gold"
-            android:textSize="11sp"
-            android:textStyle="bold"
-            android:letterSpacing="0.08" />
+          <TextView
+              android:layout_width="0dp"
+              android:layout_height="wrap_content"
+              android:layout_weight="1"
+              android:text="&#x2694;  OSRS BOT"
+              android:textColor="@color/gold"
+              android:textSize="11sp"
+              android:textStyle="bold"
+              android:letterSpacing="0.08" />
 
-        <!-- Minimize -->
-        <ImageButton
-            android:id="@+id/btnMinimize"
-            android:layout_width="30dp"
-            android:layout_height="30dp"
-            android:background="@drawable/btn_overlay_bg"
-            android:contentDescription="Minimize"
-            android:src="@android:drawable/arrow_up_float"
-            android:tint="@color/text_secondary"
-            android:scaleType="centerInside"
-            android:layout_marginEnd="4dp" />
+          <!-- Minimize -->
+          <ImageButton
+              android:id="@+id/btnMinimize"
+              android:layout_width="32dp"
+              android:layout_height="32dp"
+              android:background="@drawable/btn_overlay_bg"
+              android:contentDescription="Minimize"
+              android:src="@android:drawable/arrow_up_float"
+              android:tint="@color/text_secondary"
+              android:scaleType="centerInside"
+              android:layout_marginEnd="4dp" />
 
-        <!-- Stop -->
-        <ImageButton
-            android:id="@+id/btnOverlayStop"
-            android:layout_width="30dp"
-            android:layout_height="30dp"
-            android:background="@drawable/btn_red_bg"
-            android:contentDescription="Stop bot"
-            android:src="@android:drawable/ic_media_pause"
-            android:tint="@color/text_primary"
-            android:scaleType="centerInside"
-            android:layout_marginEnd="4dp" />
+          <!-- Stop -->
+          <ImageButton
+              android:id="@+id/btnOverlayStop"
+              android:layout_width="32dp"
+              android:layout_height="32dp"
+              android:background="@drawable/btn_red_bg"
+              android:contentDescription="Stop bot"
+              android:src="@android:drawable/ic_media_pause"
+              android:tint="@color/text_primary"
+              android:scaleType="centerInside"
+              android:layout_marginEnd="4dp" />
 
-        <!-- Start -->
-        <ImageButton
-            android:id="@+id/btnOverlayStart"
-            android:layout_width="30dp"
-            android:layout_height="30dp"
-            android:background="@drawable/btn_green_bg"
-            android:contentDescription="Start bot"
-            android:src="@android:drawable/ic_media_play"
-            android:tint="@color/text_primary"
-            android:scaleType="centerInside" />
-    </LinearLayout>
+          <!-- Start -->
+          <ImageButton
+              android:id="@+id/btnOverlayStart"
+              android:layout_width="32dp"
+              android:layout_height="32dp"
+              android:background="@drawable/btn_green_bg"
+              android:contentDescription="Start bot"
+              android:src="@android:drawable/ic_media_play"
+              android:tint="@color/text_primary"
+              android:scaleType="centerInside" />
+      </LinearLayout>
 
-    <!-- ══ DIVIDER ══════════════════════════════════════════════════ -->
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:background="@drawable/divider_gold" />
+      <!-- DIVIDER -->
+      <View
+          android:layout_width="match_parent"
+          android:layout_height="1dp"
+          android:background="@drawable/divider_gold" />
 
-    <!-- ══ STATS BODY ═══════════════════════════════════════════════ -->
-    <LinearLayout
-        android:id="@+id/overlayBody"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:padding="12dp">
+      <!-- STATS BODY -->
+      <LinearLayout
+          android:id="@+id/overlayBody"
+          android:layout_width="match_parent"
+          android:layout_height="wrap_content"
+          android:orientation="vertical"
+          android:padding="12dp">
 
-        <!-- Script name — full width, goldish -->
-        <TextView
-            android:id="@+id/tvOvScript"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="— No script selected —"
-            android:textColor="@color/gold_light"
-            android:textSize="12sp"
-            android:textStyle="bold"
-            android:layout_marginBottom="10dp" />
+          <TextView
+              android:id="@+id/tvOvScript"
+              android:layout_width="match_parent"
+              android:layout_height="wrap_content"
+              android:text="No script selected"
+              android:textColor="@color/gold_light"
+              android:textSize="12sp"
+              android:textStyle="bold"
+              android:layout_marginBottom="10dp" />
 
-        <!-- ── 2-col stat grid ── -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:layout_marginBottom="6dp">
+          <!-- Row 1: Actions + XP -->
+          <LinearLayout
+              android:layout_width="match_parent"
+              android:layout_height="wrap_content"
+              android:orientation="horizontal"
+              android:layout_marginBottom="6dp">
 
-            <!-- Actions -->
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_weight="1"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:background="@drawable/script_card_bg"
-                android:padding="8dp"
-                android:layout_marginEnd="4dp">
+              <LinearLayout
+                  android:layout_width="0dp"
+                  android:layout_weight="1"
+                  android:layout_height="wrap_content"
+                  android:orientation="vertical"
+                  android:background="@drawable/script_card_bg"
+                  android:padding="8dp"
+                  android:layout_marginEnd="4dp">
+                  <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                      android:text="ACTIONS" android:textColor="@color/text_muted"
+                      android:textSize="8sp" android:textStyle="bold" android:letterSpacing="0.1" />
+                  <TextView android:id="@+id/tvOvActions" android:layout_width="wrap_content"
+                      android:layout_height="wrap_content" android:text="0"
+                      android:textColor="@color/gold_light" android:textSize="14sp" android:textStyle="bold" />
+              </LinearLayout>
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="ACTIONS"
-                    android:textColor="@color/text_muted"
-                    android:textSize="8sp"
-                    android:textStyle="bold"
-                    android:letterSpacing="0.1" />
+              <LinearLayout
+                  android:layout_width="0dp"
+                  android:layout_weight="1"
+                  android:layout_height="wrap_content"
+                  android:orientation="vertical"
+                  android:background="@drawable/script_card_bg"
+                  android:padding="8dp"
+                  android:layout_marginStart="4dp">
+                  <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                      android:text="XP GAINED" android:textColor="@color/text_muted"
+                      android:textSize="8sp" android:textStyle="bold" android:letterSpacing="0.1" />
+                  <TextView android:id="@+id/tvOvXP" android:layout_width="wrap_content"
+                      android:layout_height="wrap_content" android:text="0"
+                      android:textColor="@color/orange" android:textSize="14sp" android:textStyle="bold" />
+              </LinearLayout>
+          </LinearLayout>
 
-                <TextView
-                    android:id="@+id/tvOvActions"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="0"
-                    android:textColor="@color/gold_light"
-                    android:textSize="14sp"
-                    android:textStyle="bold" />
-            </LinearLayout>
+          <!-- Row 2: GP/hr + Runtime -->
+          <LinearLayout
+              android:layout_width="match_parent"
+              android:layout_height="wrap_content"
+              android:orientation="horizontal"
+              android:layout_marginBottom="8dp">
 
-            <!-- XP -->
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_weight="1"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:background="@drawable/script_card_bg"
-                android:padding="8dp"
-                android:layout_marginStart="4dp">
+              <LinearLayout
+                  android:layout_width="0dp"
+                  android:layout_weight="1"
+                  android:layout_height="wrap_content"
+                  android:orientation="vertical"
+                  android:background="@drawable/script_card_bg"
+                  android:padding="8dp"
+                  android:layout_marginEnd="4dp">
+                  <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                      android:text="GP / HR" android:textColor="@color/text_muted"
+                      android:textSize="8sp" android:textStyle="bold" android:letterSpacing="0.1" />
+                  <TextView android:id="@+id/tvOvGP" android:layout_width="wrap_content"
+                      android:layout_height="wrap_content" android:text="0"
+                      android:textColor="@color/green" android:textSize="14sp" android:textStyle="bold" />
+              </LinearLayout>
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="XP GAINED"
-                    android:textColor="@color/text_muted"
-                    android:textSize="8sp"
-                    android:textStyle="bold"
-                    android:letterSpacing="0.1" />
+              <LinearLayout
+                  android:layout_width="0dp"
+                  android:layout_weight="1"
+                  android:layout_height="wrap_content"
+                  android:orientation="vertical"
+                  android:background="@drawable/script_card_bg"
+                  android:padding="8dp"
+                  android:layout_marginStart="4dp">
+                  <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                      android:text="RUNTIME" android:textColor="@color/text_muted"
+                      android:textSize="8sp" android:textStyle="bold" android:letterSpacing="0.1" />
+                  <TextView android:id="@+id/tvOvRuntime" android:layout_width="wrap_content"
+                      android:layout_height="wrap_content" android:text="00:00:00"
+                      android:textColor="@color/gold_light" android:textSize="13sp"
+                      android:textStyle="bold" android:fontFamily="monospace" />
+              </LinearLayout>
+          </LinearLayout>
 
-                <TextView
-                    android:id="@+id/tvOvXP"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="0"
-                    android:textColor="@color/orange"
-                    android:textSize="14sp"
-                    android:textStyle="bold" />
-            </LinearLayout>
-        </LinearLayout>
+          <!-- Divider -->
+          <View android:layout_width="match_parent" android:layout_height="1dp"
+              android:background="@drawable/divider_gold" android:layout_marginBottom="8dp" />
 
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:layout_marginBottom="8dp">
+          <!-- Targets + Status -->
+          <LinearLayout
+              android:layout_width="match_parent"
+              android:layout_height="wrap_content"
+              android:orientation="horizontal"
+              android:gravity="center_vertical"
+              android:layout_marginBottom="4dp">
+              <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                  android:text="Targets " android:textColor="@color/text_muted" android:textSize="10sp" />
+              <TextView android:id="@+id/tvOvTargets" android:layout_width="0dp"
+                  android:layout_height="wrap_content" android:layout_weight="1"
+                  android:text="None set" android:textColor="@color/orange"
+                  android:textSize="10sp" android:textStyle="bold" />
+              <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                  android:text="Status " android:textColor="@color/text_muted" android:textSize="10sp" />
+              <TextView android:id="@+id/tvOvStatus" android:layout_width="wrap_content"
+                  android:layout_height="wrap_content" android:text="Idle"
+                  android:textColor="@color/text_muted" android:textSize="10sp" android:textStyle="bold" />
+          </LinearLayout>
 
-            <!-- GP/hr -->
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_weight="1"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:background="@drawable/script_card_bg"
-                android:padding="8dp"
-                android:layout_marginEnd="4dp">
+          <!-- Current action -->
+          <TextView
+              android:id="@+id/tvOvAction"
+              android:layout_width="match_parent"
+              android:layout_height="wrap_content"
+              android:text="Waiting..."
+              android:textColor="@color/text_secondary"
+              android:textSize="10sp"
+              android:maxLines="2"
+              android:ellipsize="end"
+              android:layout_marginBottom="10dp" />
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="GP / HR"
-                    android:textColor="@color/text_muted"
-                    android:textSize="8sp"
-                    android:textStyle="bold"
-                    android:letterSpacing="0.1" />
+          <!-- Buttons -->
+          <Button
+              android:id="@+id/btnSelectTarget"
+              android:layout_width="match_parent"
+              android:layout_height="38dp"
+              android:text="TARGET"
+              android:background="@drawable/btn_gold_bg"
+              android:textColor="@color/text_dark"
+              android:textStyle="bold"
+              android:textSize="11sp"
+              android:elevation="3dp"
+              android:stateListAnimator="@null"
+              android:layout_marginBottom="6dp" />
 
-                <TextView
-                    android:id="@+id/tvOvGP"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="0"
-                    android:textColor="@color/green"
-                    android:textSize="14sp"
-                    android:textStyle="bold" />
-            </LinearLayout>
+          <Button
+              android:id="@+id/btnClearTargets"
+              android:layout_width="match_parent"
+              android:layout_height="34dp"
+              android:text="Clear Targets"
+              android:background="@drawable/btn_ghost_bg"
+              android:textColor="@color/text_muted"
+              android:textSize="10sp"
+              android:stateListAnimator="@null" />
+      </LinearLayout>
 
-            <!-- Runtime -->
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_weight="1"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:background="@drawable/script_card_bg"
-                android:padding="8dp"
-                android:layout_marginStart="4dp">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="RUNTIME"
-                    android:textColor="@color/text_muted"
-                    android:textSize="8sp"
-                    android:textStyle="bold"
-                    android:letterSpacing="0.1" />
-
-                <TextView
-                    android:id="@+id/tvOvRuntime"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="00:00:00"
-                    android:textColor="@color/gold_light"
-                    android:textSize="13sp"
-                    android:textStyle="bold"
-                    android:fontFamily="monospace" />
-            </LinearLayout>
-        </LinearLayout>
-
-        <!-- Divider -->
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="1dp"
-            android:background="@drawable/divider_gold"
-            android:layout_marginBottom="8dp" />
-
-        <!-- Targets + Status inline -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:layout_marginBottom="4dp">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Targets "
-                android:textColor="@color/text_muted"
-                android:textSize="10sp" />
-
-            <TextView
-                android:id="@+id/tvOvTargets"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="None set"
-                android:textColor="@color/orange"
-                android:textSize="10sp"
-                android:textStyle="bold" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Status "
-                android:textColor="@color/text_muted"
-                android:textSize="10sp" />
-
-            <TextView
-                android:id="@+id/tvOvStatus"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Idle"
-                android:textColor="@color/text_muted"
-                android:textSize="10sp"
-                android:textStyle="bold" />
-        </LinearLayout>
-
-        <!-- Current action -->
-        <TextView
-            android:id="@+id/tvOvAction"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Waiting…"
-            android:textColor="@color/text_secondary"
-            android:textSize="10sp"
-            android:maxLines="2"
-            android:ellipsize="end"
-            android:layout_marginBottom="10dp" />
-
-        <!-- ── Buttons ── -->
-        <Button
-            android:id="@+id/btnSelectTarget"
-            android:layout_width="match_parent"
-            android:layout_height="38dp"
-            android:text="🎯  SELECT TARGETS"
-            android:background="@drawable/btn_gold_bg"
-            android:textColor="@color/text_dark"
-            android:textStyle="bold"
-            android:textSize="11sp"
-            android:elevation="3dp"
-            android:stateListAnimator="@null"
-            android:layout_marginBottom="6dp" />
-
-        <Button
-            android:id="@+id/btnClearTargets"
-            android:layout_width="match_parent"
-            android:layout_height="34dp"
-            android:text="Clear Targets"
-            android:background="@drawable/btn_ghost_bg"
-            android:textColor="@color/text_muted"
-            android:textSize="10sp"
-            android:stateListAnimator="@null" />
-    </LinearLayout>
-
-</LinearLayout>
+  </LinearLayout>
+  
