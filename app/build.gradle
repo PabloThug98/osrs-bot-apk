@@ -10,7 +10,7 @@ android {
     defaultConfig {
         applicationId "com.osrsbot.autotrainer"
         minSdk 24
-        targetSdk 33
+        targetSdk 34   // bumped from 33 — required by Google Play since Aug 2024
         versionCode 2
         versionName "2.0"
     }
