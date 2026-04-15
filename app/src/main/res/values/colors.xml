@@ -1,16 +1,44 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="bg_dark">#0D0D0D</color>
-    <color name="bg_panel">#1A1A1A</color>
-    <color name="bg_card">#222222</color>
-    <color name="gold">#C8A84B</color>
-    <color name="gold_light">#F0D060</color>
-    <color name="green">#4CAF50</color>
-    <color name="red">#F44336</color>
-    <color name="orange">#FF9800</color>
-    <color name="blue">#2196F3</color>
-    <color name="text_primary">#E0E0E0</color>
-    <color name="text_muted">#888888</color>
-    <color name="overlay_bg">#CC000000</color>
-    <color name="border">#333333</color>
+    <!-- ── Backgrounds ───────────────────────────────────────────── -->
+    <color name="bg_void">#05080F</color>
+    <color name="bg_dark">#090C15</color>
+    <color name="bg_panel">#0F1420</color>
+    <color name="bg_card">#121929</color>
+    <color name="bg_card_mid">#18213A</color>
+    <color name="bg_card_top">#1E2B47</color>
+
+    <!-- ── Gold (OSRS accent) ─────────────────────────────────────── -->
+    <color name="gold">#FFB800</color>
+    <color name="gold_light">#FFD04D</color>
+    <color name="gold_dim">#CC8C00</color>
+    <color name="gold_dark">#7A5200</color>
+    <color name="gold_glow">#33FFB800</color>
+    <color name="gold_stroke">#2BFFB800</color>
+
+    <!-- ── Status colors ─────────────────────────────────────────── -->
+    <color name="green">#00E676</color>
+    <color name="green_dim">#00A854</color>
+    <color name="green_dark">#004D25</color>
+    <color name="red">#FF1744</color>
+    <color name="red_dim">#CC0033</color>
+    <color name="red_dark">#4D0010</color>
+    <color name="orange">#FF9100</color>
+    <color name="blue">#448AFF</color>
+    <color name="blue_dim">#1565C0</color>
+
+    <!-- ── Text ──────────────────────────────────────────────────── -->
+    <color name="text_primary">#EAEDF3</color>
+    <color name="text_secondary">#9AA3B5</color>
+    <color name="text_muted">#5A6478</color>
+    <color name="text_dark">#06090F</color>
+
+    <!-- ── Borders ───────────────────────────────────────────────── -->
+    <color name="border">#1C2840</color>
+    <color name="border_mid">#253352</color>
+    <color name="border_gold">#3A2A00</color>
+
+    <!-- ── Overlay ───────────────────────────────────────────────── -->
+    <color name="overlay_bg">#F0060A16</color>
+    <color name="overlay_border">#2E3D60</color>
 </resources>
