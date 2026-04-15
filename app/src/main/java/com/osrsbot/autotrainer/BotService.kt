@@ -45,6 +45,16 @@ class BotService : LifecycleService() {
         return binder
     }
 
+    /**
+     * Return START_STICKY so the OS automatically restarts BotService
+     * if it is killed under memory pressure while the bot is running.
+     * LifecycleService does not guarantee this without an explicit override.
+     */
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        super.onStartCommand(intent, flags, startId)
+        return START_STICKY
+    }
+
     override fun onCreate() {
         super.onCreate()
         createNotificationChannel()
