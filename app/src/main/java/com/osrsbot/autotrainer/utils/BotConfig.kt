@@ -13,6 +13,10 @@ data class BotConfig(
     val stopAfterActionCount: Int = 500,
     val fatigueEnabled: Boolean = true,
     val randomCameraMove: Boolean = false,
+    // Walker location area for woodcutting/fishing/combat scripts.
+    // Values: "none", "lumbridge", "draynor", "varrock_west", "varrock_east",
+    //         "falador", "edgeville", "barbarian_village"
+    val walkerArea: String = "none",
 )
 
 object ScriptInfo {
