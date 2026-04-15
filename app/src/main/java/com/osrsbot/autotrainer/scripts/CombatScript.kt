@@ -1,117 +1,139 @@
 package com.osrsbot.autotrainer.scripts
 
-import android.accessibilityservice.AccessibilityService
-import android.accessibilityservice.GestureDescription
-import android.graphics.Path
-import com.osrsbot.autotrainer.antiban.AntiBanManager
-import com.osrsbot.autotrainer.detector.ObjectDetector
-import com.osrsbot.autotrainer.selector.TargetStore
-import com.osrsbot.autotrainer.utils.BotConfig
-import com.osrsbot.autotrainer.utils.Logger
-import kotlinx.coroutines.delay
-import kotlin.random.Random
+  import android.accessibilityservice.AccessibilityService
+  import android.accessibilityservice.GestureDescription
+  import android.graphics.Path
+  import com.osrsbot.autotrainer.antiban.AntiBanManager
+  import com.osrsbot.autotrainer.detector.ObjectDetector
+  import com.osrsbot.autotrainer.selector.TargetStore
+  import com.osrsbot.autotrainer.utils.BotConfig
+  import com.osrsbot.autotrainer.utils.Logger
+  import kotlinx.coroutines.delay
+  import kotlin.random.Random
 
-class CombatScript(
-    service: AccessibilityService,
-    config: BotConfig,
-    antiBan: AntiBanManager,
-    detector: ObjectDetector,
-) : BotScript(service, config, antiBan, detector) {
+  class CombatScript(
+      service: AccessibilityService,
+      config: BotConfig,
+      antiBan: AntiBanManager,
+      detector: ObjectDetector,
+  ) : BotScript(service, config, antiBan, detector) {
 
-    override val id   = "combat"
-    override val name = "⚔️ Combat Trainer"
+      override val id   = "combat"
+      override val name = "Combat Trainer"
 
-    private val XP_PER_KILL = 60
-    private val GP_PER_KILL = 20
-    private var hp = 99
-    private val EAT_HP_THRESHOLD = 45
+      private val XP_PER_KILL = 60
+      private val GP_PER_KILL = 20
 
-    private enum class State { FIND_MONSTER, IN_COMBAT, LOOTING, EATING }
-    private var state = State.FIND_MONSTER
+      private var hp = 99
+      private val EAT_HP_THRESHOLD = 45
+      private var missStreak = 0
 
-    override suspend fun tick() {
-        when (state) {
+      // Priority monster keywords - checked in order, first match wins
+      private val PRIORITY_MONSTERS = listOf(
+          "goblin", "chicken", "cow", "imp", "rat", "spider",
+          "man", "woman", "barbarian", "guard", "zombie", "skeleton",
+          "rock crab", "sand crab", "moss giant", "hill giant"
+      )
 
-            State.FIND_MONSTER -> {
-                // Simulate gradual HP loss during combat
-                hp -= Random.nextInt(1, 4)
-                if (hp <= EAT_HP_THRESHOLD) {
-                    state = State.EATING
-                    return
-                }
+      private enum class State { FIND_MONSTER, IN_COMBAT, LOOTING, EATING }
+      private var state = State.FIND_MONSTER
 
-                setAction("Looking for monster…")
-                val userTarget = TargetStore.nextTarget()
+      override fun onStuck() {
+          Logger.warn("[" + name + "] Stuck — resetting to FIND_MONSTER")
+          state = State.FIND_MONSTER
+          missStreak = 0
+          detector.invalidateCache()
+          super.onStuck()
+      }
 
-                if (userTarget != null) {
-                    delay(antiBan.getClickDelay())
-                    val (ox, oy) = antiBan.getClickOffset()
-                    tap(userTarget.x + ox.toFloat(), userTarget.y + oy.toFloat())
-                    Logger.action("Attacking '${userTarget.label}'")
-                    state = State.IN_COMBAT
-                } else {
-                    val dm = service.resources.displayMetrics
-                    val detected = detector.detectObjects("combat")
-                    val monster = detected.firstOrNull {
-                        listOf("goblin", "cow", "imp", "rat", "spider", "chicken")
-                            .any { m -> it.name.lowercase().contains(m) }
-                    }
+      override suspend fun tick() {
+          when (state) {
 
-                    if (monster != null) {
-                        delay(antiBan.getClickDelay())
-                        val (ox, oy) = antiBan.getClickOffset()
-                        tap(monster.bounds.exactCenterX() + ox, monster.bounds.exactCenterY() + oy)
-                        Logger.action("Attacking detected monster")
-                        state = State.IN_COMBAT
-                    } else {
-                        setAction("No monster found. Tap 🎯 to set targets!")
-                        delay(2000L + Random.nextLong(0, 500))
-                    }
-                }
-            }
+              State.FIND_MONSTER -> {
+                  hp -= Random.nextInt(1, 4)
+                  if (hp <= EAT_HP_THRESHOLD) { state = State.EATING; return }
 
-            State.IN_COMBAT -> {
-                // Wait for the kill — OSRS combat: varies by monster HP and player stats
-                // Typical lowbie monster: 8-14 seconds
-                val killMs = antiBan.getCombatKillDelay()
-                setAction("Fighting… (${killMs / 1000}s)")
-                delay(killMs)
+                  setAction("Looking for monster…")
+                  val userTarget = TargetStore.nextTarget()
 
-                completeAction(XP_PER_KILL, GP_PER_KILL)
-                Logger.ok("Kill #$actions | XP: $xpGained | HP: $hp")
+                  if (userTarget != null) {
+                      delay(antiBan.getClickDelay())
+                      val (ox, oy) = antiBan.getClickOffset()
+                      tap(userTarget.x + ox.toFloat(), userTarget.y + oy.toFloat())
+                      Logger.action("Attacking saved target: " + userTarget.label)
+                      state = State.IN_COMBAT
+                      missStreak = 0
+                      return
+                  }
 
-                // Loot drops
-                state = State.LOOTING
-            }
+                  val forceRefresh = missStreak >= 3
+                  val dm = service.resources.displayMetrics
+                  val detected = detector.detectObjects("combat", forceRefresh)
+                      .filter { it.confidence >= config.detectConfidenceMin }
 
-            State.LOOTING -> {
-                setAction("Looting drops…")
-                // Click slightly below kill position to loot (drops fall near where monster died)
-                val userTarget = TargetStore.peekCurrent()
-                if (userTarget != null) {
-                    val (ox, oy) = antiBan.getClickOffset()
-                    // Loot is roughly where the monster was, slight downward offset
-                    tap(userTarget.x + ox + Random.nextInt(-15, 15),
-                        userTarget.y + oy + Random.nextInt(20, 40).toFloat())
-                }
-                delay(antiBan.getActionDelay() * 2)
-                state = State.FIND_MONSTER
-            }
+                  // Try priority list first, then fall back to nearest
+                  val monster = PRIORITY_MONSTERS.firstNotNullOfOrNull { kw ->
+                      detector.findBestMatch(detected, kw)
+                  } ?: detector.findNearest(detected, dm.widthPixels, dm.heightPixels)
 
-            State.EATING -> {
-                setAction("HP low ($hp) — eating food…")
-                delay(antiBan.getActionDelay())
-                hp = Random.nextInt(80, 99)
-                Logger.warn("Ate food — HP: $hp")
-                delay(antiBan.getClickDelay())
-                state = State.FIND_MONSTER
-            }
-        }
-    }
+                  if (monster != null) {
+                      delay(antiBan.getClickDelay())
+                      val (ox, oy) = antiBan.getClickOffset()
+                      tap(monster.bounds.exactCenterX() + ox, monster.bounds.exactCenterY() + oy)
+                      Logger.action("Attacking: " + monster.name + " conf=" + "%.2f".format(monster.confidence))
+                      state = State.IN_COMBAT
+                      missStreak = 0
+                  } else {
+                      missStreak++
+                      setAction("No monster found (miss " + missStreak + "). Set targets via overlay.")
+                      delay(2_000L + Random.nextLong(0, 500))
+                  }
+              }
 
-    private fun tap(x: Float, y: Float) {
-        val path = Path().apply { moveTo(x.coerceAtLeast(1f), y.coerceAtLeast(1f)) }
-        val stroke = GestureDescription.StrokeDescription(path, 0, 80)
-        service.dispatchGesture(GestureDescription.Builder().addStroke(stroke).build(), null, null)
-    }
-}
+              State.IN_COMBAT -> {
+                  val killMs = antiBan.getCombatKillDelay()
+                  setAction("Fighting… (" + (killMs / 1000) + "s)")
+                  delay(killMs)
+                  completeAction(XP_PER_KILL, GP_PER_KILL)
+                  Logger.ok("Kill #" + actions + " | XP: " + xpGained + " | HP: " + hp)
+                  state = State.LOOTING
+              }
+
+              State.LOOTING -> {
+                  setAction("Looting drops…")
+                  val userTarget = TargetStore.peekCurrent()
+                  if (userTarget != null) {
+                      val (ox, oy) = antiBan.getClickOffset()
+                      tap(
+                          userTarget.x + ox + Random.nextInt(-15, 15),
+                          userTarget.y + oy + Random.nextInt(20, 40).toFloat()
+                      )
+                  }
+                  delay(antiBan.getActionDelay() * 2)
+                  detector.invalidateCache()
+                  state = State.FIND_MONSTER
+              }
+
+              State.EATING -> {
+                  setAction("Low HP — eating food…")
+                  val dm = service.resources.displayMetrics
+                  tap(
+                      dm.widthPixels * 0.82f + Random.nextInt(-10, 10),
+                      dm.heightPixels * 0.80f + Random.nextInt(-10, 10)
+                  )
+                  delay(1_500L + Random.nextLong(0, 300))
+                  hp = (hp + Random.nextInt(8, 22)).coerceAtMost(99)
+                  Logger.ok("Ate food — HP ~" + hp)
+                  completeAction()
+                  state = State.FIND_MONSTER
+              }
+          }
+      }
+
+      private fun tap(x: Float, y: Float) {
+          val path = Path().apply { moveTo(x.coerceAtLeast(1f), y.coerceAtLeast(1f)) }
+          val stroke = GestureDescription.StrokeDescription(path, 0, 80)
+          service.dispatchGesture(GestureDescription.Builder().addStroke(stroke).build(), null, null)
+      }
+  }
+  
