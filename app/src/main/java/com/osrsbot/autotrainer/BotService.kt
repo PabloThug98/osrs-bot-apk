@@ -20,6 +20,8 @@ import com.osrsbot.autotrainer.utils.ScriptInfo
 import com.osrsbot.autotrainer.walker.WalkerManager
 import android.media.projection.MediaProjection
 import com.osrsbot.autotrainer.capture.ScreenCaptureManager
+import com.osrsbot.autotrainer.detector.GameStateDetector
+import com.osrsbot.autotrainer.overlay.DebugOverlay
 import kotlinx.coroutines.*
 import kotlin.random.Random
 
@@ -31,6 +33,8 @@ class BotService : LifecycleService() {
 
     private val binder    = LocalBinder()
     private var screenCapture: ScreenCaptureManager? = null
+    private var gameStateDetector: GameStateDetector? = null
+    private var debugOverlay: DebugOverlay? = null
     private var overlay: OverlayManager? = null
     private var botJob: Job? = null
     private var config    = BotConfig()
@@ -77,7 +81,14 @@ class BotService : LifecycleService() {
     fun setMediaProjection(projection: MediaProjection) {
         val sc = ScreenCaptureManager(applicationContext).also { screenCapture = it }
         sc.start(projection)
-        Logger.ok("BotService: screen capture started.")
+        gameStateDetector = GameStateDetector(sc)
+        debugOverlay = DebugOverlay(applicationContext)
+        Logger.ok("BotService: screen capture + GameStateDetector + DebugOverlay ready.")
+    }
+
+    fun toggleDebugOverlay() {
+        val d = debugOverlay ?: return
+        if (d.isShowing) d.hide() else d.show()
     }
 
     fun showOverlay() {
@@ -115,6 +126,7 @@ class BotService : LifecycleService() {
                 wc
             }
             "fishing"     -> FishingScript(accessService, config, antiBan, detector)
+            "mining"      -> MiningScript(accessService, config, antiBan, detector)
             "combat"      -> CombatScript(accessService, config, antiBan, detector)
             else          -> ChocolateDustScript(accessService, config, antiBan, detector)
         }
@@ -170,6 +182,19 @@ class BotService : LifecycleService() {
                     }
 
                     // ── Normal tick ──────────────────────────────────────────
+                    // ── game-state guard ────────────────────────────────────────
+                    val gs = gameStateDetector?.getState()
+                    if (gs == GameStateDetector.GameState.LOGIN_SCREEN || gs == GameStateDetector.GameState.LOADING) {
+                        withContext(Dispatchers.Main) { statusListener?.invoke("Waiting: ${gs?.name}", true) }
+                        delay(3_000L); continue
+                    }
+                    if (gs == GameStateDetector.GameState.LEVEL_UP) delay(2_200L)
+
+                    // ── debug overlay ────────────────────────────────────────────
+                    if (debugOverlay?.isShowing == true) withContext(Dispatchers.Main) {
+                        debugOverlay?.updateObjects(script.currentDetectedObjects)
+                    }
+
                     try {
                         script.tick()
                     } catch (e: CancellationException) {
@@ -271,6 +296,7 @@ class BotService : LifecycleService() {
     override fun onDestroy() {
         stopBot()
         screenCapture?.stop()
+        debugOverlay?.hide()
         overlay?.hide()
         super.onDestroy()
     }
