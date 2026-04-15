@@ -19,6 +19,7 @@ import com.osrsbot.autotrainer.utils.BotConfig
 import com.osrsbot.autotrainer.utils.Logger
 import com.osrsbot.autotrainer.utils.ScriptInfo
 import kotlinx.coroutines.*
+import kotlin.random.Random
 
 class BotService : LifecycleService() {
 
@@ -67,7 +68,7 @@ class BotService : LifecycleService() {
         if (isRunning) return
         val accessService = OSRSAccessibilityService.instance
         if (accessService == null) {
-            Logger.error("Accessibility service not connected. Enable it in settings.")
+            Logger.error("Accessibility service not connected.")
             statusListener?.invoke("Accessibility service not enabled", false)
             return
         }
@@ -92,30 +93,29 @@ class BotService : LifecycleService() {
         botJob = lifecycleScope.launch(Dispatchers.IO) {
             while (isActive && isRunning) {
 
-                // ── Auto-stop checks ──
                 val stopReason = antiBan.checkAutoStop(startTimeMs, script.actions)
                 if (stopReason != null) {
                     withContext(Dispatchers.Main) {
-                        Logger.warn("Auto-stop: $stopReason")
+                        Logger.warn("Auto-stop triggered: $stopReason")
                         stopBot()
                     }
                     break
                 }
 
-                // ── Break check ──
                 if (antiBan.shouldBreak()) {
                     onBreak = true
+                    val jitter = Random.nextLong(-5000L, 5000L)
+                    val breakMs = config.breakDurationMs + jitter
                     withContext(Dispatchers.Main) {
                         updateOverlayStats(script, antiBan, "Break")
                         statusListener?.invoke("On Break", true)
                     }
-                    delay(config.breakDurationMs + (-5000L..5000L).random())
+                    delay(breakMs.coerceAtLeast(1000L))
                     antiBan.resetBreakCounter()
                     onBreak = false
                     withContext(Dispatchers.Main) { statusListener?.invoke("Running", true) }
                 }
 
-                // ── Execute script tick ──
                 if (!onBreak) {
                     script.tick()
                     withContext(Dispatchers.Main) {
@@ -141,12 +141,12 @@ class BotService : LifecycleService() {
         val elapsed = (System.currentTimeMillis() - startTimeMs) / 1000L
         val h = elapsed / 3600; val m = (elapsed % 3600) / 60; val s = elapsed % 60
         val runtime = "%02d:%02d:%02d".format(h, m, s)
-        val hr = if (elapsed > 0) (script.gpGained / (elapsed / 3600.0)).toInt() else 0
+        val gpHr = if (elapsed > 0) (script.gpGained / (elapsed / 3600.0)).toInt() else 0
         overlay?.updateStats(
             script = ScriptInfo.name(config.scriptId),
             actions = script.actions,
             xp = script.xpGained,
-            gpHr = hr,
+            gpHr = gpHr,
             runtime = runtime,
             status = status,
             currentAction = script.currentAction,
@@ -162,7 +162,7 @@ class BotService : LifecycleService() {
     }
 
     private fun buildNotification(text: String): Notification {
-        val intent = PendingIntent.getActivity(
+        val pi = PendingIntent.getActivity(
             this, 0, Intent(this, MainActivity::class.java),
             PendingIntent.FLAG_IMMUTABLE
         )
@@ -170,17 +170,17 @@ class BotService : LifecycleService() {
             .setSmallIcon(android.R.drawable.ic_menu_compass)
             .setContentTitle("OSRS Bot")
             .setContentText(text)
-            .setContentIntent(intent)
+            .setContentIntent(pi)
             .setOngoing(true)
             .build()
     }
 
     private fun createNotificationChannel() {
-        val channel = NotificationChannel(
+        val ch = NotificationChannel(
             CHANNEL_ID, "OSRS Bot Service",
             NotificationManager.IMPORTANCE_LOW
-        ).apply { description = "Bot running status" }
-        (getSystemService(NOTIFICATION_SERVICE) as NotificationManager).createNotificationChannel(channel)
+        ).apply { description = "Running status" }
+        (getSystemService(NOTIFICATION_SERVICE) as NotificationManager).createNotificationChannel(ch)
     }
 
     override fun onDestroy() {
