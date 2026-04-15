@@ -1,86 +1,80 @@
 name: Build & Release APK
 
-  on:
-    push:
-      branches: [ main ]
-    workflow_dispatch:
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
 
-  jobs:
-    build:
-      runs-on: ubuntu-latest
-      permissions:
-        contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
-      steps:
-        - name: Checkout code
-          uses: actions/checkout@v4
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-        - name: Set up JDK 17
-          uses: actions/setup-java@v4
-          with:
-            java-version: '17'
-            distribution: 'temurin'
-            cache: gradle
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: gradle
 
-        - name: Accept Android SDK licenses
-          run: yes | sdkmanager --licenses || true
+      - name: Accept Android SDK licenses
+        run: yes | sdkmanager --licenses || true
 
-        - name: Make gradlew executable
-          run: chmod +x ./gradlew
+      - name: Make gradlew executable
+        run: chmod +x ./gradlew
 
-        - name: Build Debug APK
-          run: ./gradlew assembleDebug --no-daemon --stacktrace
+      - name: Build Debug APK
+        run: ./gradlew assembleDebug --no-daemon --stacktrace
 
-        - name: Rename APK
-          run: |
-            mkdir -p release
-            cp app/build/outputs/apk/debug/app-debug.apk release/OSRS-Bot-v2.apk
+      - name: Copy APK to release folder
+        run: |
+          mkdir -p release
+          cp app/build/outputs/apk/debug/app-debug.apk release/OSRS-Bot-v2.apk
 
-        - name: Upload APK as artifact
-          uses: actions/upload-artifact@v4
-          with:
-            name: OSRS-Bot-v2-APK
-            path: release/OSRS-Bot-v2.apk
-            retention-days: 90
+      - name: Upload APK as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: OSRS-Bot-v2-APK
+          path: release/OSRS-Bot-v2.apk
+          retention-days: 90
 
-        - name: Delete old release if exists
-          run: gh release delete latest --yes || true
-          env:
-            GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Delete old latest release
+        run: gh release delete latest --yes || true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-        - name: Create GitHub Release with APK
-          uses: softprops/action-gh-release@v2
-          with:
-            tag_name: latest
-            name: "OSRS Bot v2.0 — Download APK Here"
-            body: |
-              ## Download the APK below — tap the .apk file
+      - name: Create GitHub Release with APK
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest
+          name: 'OSRS Bot v2.0 - Download APK Here'
+          body: |
+            ## Download the APK file below to test
+            Built automatically from the latest source code.
 
-              > Built automatically from the latest source code.
+            ### Install steps
+            1. Tap OSRS-Bot-v2.apk below to download
+            2. Android: Settings -> Security -> Allow unknown sources
+            3. Install the APK
+            4. Open OSRS Bot, grant Overlay + Accessibility permissions
+            5. Pick script, tap Launch Floating Overlay
+            6. Switch to OSRS, tap TARGET to mark what to click, then START
 
-              ### How to install on your phone
-              1. Tap **OSRS-Bot-v2.apk** below to download
-              2. On Android: Settings → Security → **Allow unknown sources**
-              3. Open the downloaded file and tap Install
-              4. Open OSRS Bot app
-              5. Tap **Grant Permissions** and allow everything
-              6. Go to Accessibility Settings → find OSRS Bot → toggle ON
-              7. Pick your script → tap **Launch Floating Overlay**
-              8. Switch to OSRS — the floating panel appears on top
-              9. Tap **TARGET** button on overlay → tap on trees/spots/monsters
-              10. Tap **START** to begin botting
-
-              ### What's in v2.0
-              - ObjectDetector v2 — 80+ keywords, confidence scoring, deduplication, 800ms cache
-              - Level-aware timing — set WC/Fishing/Combat level for accurate waits
-              - Axe-type awareness — dragon/rune axe = faster chops
-              - Gaussian click offsets — more natural-looking clicks
-              - All scripts have miss-streak recovery and stuck detection
-              - Combat Bot — priority monster list + eating state
-            files: release/OSRS-Bot-v2.apk
-            draft: false
-            prerelease: false
-            make_latest: true
-          env:
-            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  
+            ### v2.0 improvements
+            - ObjectDetector v2: 80+ keywords, confidence scoring, deduplication, caching
+            - Level-aware timing for WC/Fishing/Combat
+            - Axe-type awareness (dragon/rune = faster chops)
+            - Gaussian click offsets for natural-looking clicks
+            - All scripts: miss-streak recovery, stuck detection, cache invalidation
+            - Combat: priority monster list + eating state
+          files: release/OSRS-Bot-v2.apk
+          draft: false
+          prerelease: false
+          make_latest: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
