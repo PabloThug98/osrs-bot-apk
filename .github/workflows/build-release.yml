@@ -5,6 +5,9 @@ on:
     tags:
       - 'v*'
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -22,7 +25,7 @@ jobs:
       - name: Build Release APK
         run: ./gradlew assembleRelease --no-daemon
 
-      - name: Generate debug keystore for signing
+      - name: Generate signing keystore
         run: |
           mkdir -p $HOME/.android
           keytool -genkeypair -v \
@@ -51,16 +54,16 @@ jobs:
             ## OSRS Auto Trainer Bot — ${{ github.ref_name }}
 
             ### Fixes in v3.0
-            - ✅ Fixed `ObjectDetector` constructor mismatch (compile error)
-            - ✅ Fixed `detector.pixelDetector` missing property (compile error)
-            - ✅ Fixed `WoodcuttingScript` NPE crash on `InventoryDetector` init
-            - ✅ Nullable `capture` guard across all 5 scripts
-            - ✅ Added **Mining** script to UI (missing from MainActivity + layout)
-            - ✅ Fixed `BotConfig` / `OverlayManager` indentation
+            - Fixed ObjectDetector constructor mismatch (compile error)
+            - Fixed detector.pixelDetector missing property (compile error)
+            - Fixed WoodcuttingScript NPE crash on InventoryDetector init
+            - Nullable capture guard across all 5 scripts
+            - Added Mining script to UI (was missing from MainActivity + layout)
+            - Fixed BotConfig / OverlayManager indentation
 
             ### Install
-            1. Download `osrsbot-signed.apk` below
-            2. Enable **Unknown Sources** on your Android device
+            1. Download osrsbot-signed.apk below
+            2. Enable Unknown Sources on your Android device
             3. Install and grant Overlay + Accessibility permissions
             4. Open OSRS Mobile, then launch the bot overlay
           files: app/build/outputs/apk/release/osrsbot-signed.apk
