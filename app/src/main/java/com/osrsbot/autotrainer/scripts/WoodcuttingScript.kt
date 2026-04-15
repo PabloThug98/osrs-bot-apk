@@ -72,6 +72,7 @@ class WoodcuttingScript(
                     "Was in state: $state → resetting to CLICK_TREE")
         state          = State.CLICK_TREE
         treeGoneStreak = 0
+        detector.invalidateCache()
         super.onStuck()     // resets lastActionMs so we don't spam this
     }
 
@@ -108,8 +109,11 @@ class WoodcuttingScript(
                     tap(treeTarget.x + ox, treeTarget.y + oy)
                     Logger.action("Clicking '${treeTarget.label}' @ (${treeTarget.x.toInt()}, ${treeTarget.y.toInt()})")
                 } else {
-                    val detected = detector.detectObjects("woodcutting")
-                    val nearest  = detector.findNearest(detected, dm.widthPixels, dm.heightPixels)
+                    val forceRefresh = treeGoneStreak >= 3
+                    val detected = detector.detectObjects("woodcutting", forceRefresh)
+                    val nearest  = detector.findNearest(
+                        detected.filter { it.confidence >= config.detectConfidenceMin },
+                        dm.widthPixels, dm.heightPixels)
                     if (nearest != null) {
                         delay(antiBan.getClickDelay())
                         val (ox, oy) = antiBan.getClickOffset()
