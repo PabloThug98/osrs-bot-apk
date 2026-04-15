@@ -34,6 +34,9 @@ class MainActivity : AppCompatActivity() {
     private var selectedWalkerArea = "none"
     private var selectedScriptId: String? = null
 
+    // If the user taps "Launch Overlay" before the service connects, store the intent here
+    private var pendingOverlayLaunch = false
+
     private lateinit var projectionManager: MediaProjectionManager
     private var projectionGranted = false
 
@@ -58,8 +61,16 @@ class MainActivity : AppCompatActivity() {
             botService?.statusListener = { status, running ->
                 runOnUiThread { updateStatusUI(status, running) }
             }
+            // Execute any overlay launch that was requested before service connected
+            if (pendingOverlayLaunch) {
+                pendingOverlayLaunch = false
+                runOnUiThread { launchOverlay() }
+            }
         }
-        override fun onServiceDisconnected(name: ComponentName) { serviceBound = false }
+        override fun onServiceDisconnected(name: ComponentName) {
+            serviceBound = false
+            botService = null
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -131,15 +142,23 @@ class MainActivity : AppCompatActivity() {
             } else {
                 projectionGranted = false
                 Logger.warn("Screen capture denied — falling back to accessibility detection.")
-                Toast.makeText(this, "Screen capture denied. Falling back to accessibility detection.", Toast.LENGTH_LONG).show()
+                Toast.makeText(this, "Screen capture denied. Bot uses accessibility detection only.", Toast.LENGTH_LONG).show()
                 launchOverlay()
             }
         }
     }
 
     private fun launchOverlay() {
-        botService?.showOverlay()
-        Toast.makeText(this, "Overlay launched! Open OSRS now.", Toast.LENGTH_LONG).show()
+        val svc = botService
+        if (svc == null) {
+            // Service not yet connected — queue the launch for when it connects
+            pendingOverlayLaunch = true
+            Toast.makeText(this, "Starting service, overlay will appear shortly...", Toast.LENGTH_SHORT).show()
+            Logger.warn("launchOverlay: botService not yet bound — queued.")
+            return
+        }
+        svc.showOverlay()
+        Toast.makeText(this, "Overlay launched! Switch to OSRS now.", Toast.LENGTH_LONG).show()
     }
 
     private fun setupScriptToggles() {
@@ -252,12 +271,14 @@ class MainActivity : AppCompatActivity() {
     private fun updateStatusUI(status: String, running: Boolean) {
         val btn = findViewById<Button>(R.id.btnLaunchOverlay)
         btn.text = if (running) "BOT RUNNING - Tap to open overlay" else "LAUNCH FLOATING OVERLAY"
-        btn.backgroundTintList = getColorStateList(if (running) R.color.red else R.color.green)
     }
 
     override fun onResume() { super.onResume(); updatePermissionStatus() }
     override fun onDestroy() {
-        if (serviceBound) { unbindService(serviceConnection); serviceBound = false }
+        if (serviceBound) {
+            try { unbindService(serviceConnection) } catch (e: Exception) { /* already unbound */ }
+            serviceBound = false
+        }
         super.onDestroy()
     }
 
