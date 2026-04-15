@@ -4,6 +4,7 @@ import android.accessibilityservice.AccessibilityService
 import com.osrsbot.autotrainer.antiban.AntiBanManager
 import com.osrsbot.autotrainer.detector.ObjectDetector
 import com.osrsbot.autotrainer.utils.BotConfig
+import com.osrsbot.autotrainer.detector.DetectedObject
 import com.osrsbot.autotrainer.utils.Logger
 
 abstract class BotScript(
@@ -26,6 +27,9 @@ abstract class BotScript(
      */
     var lastActionMs: Long = System.currentTimeMillis()
         private set
+
+    /** Last detected objects — exposed to DebugOverlay. */
+    var currentDetectedObjects: List<DetectedObject> = emptyList()
 
     abstract suspend fun tick()
 
