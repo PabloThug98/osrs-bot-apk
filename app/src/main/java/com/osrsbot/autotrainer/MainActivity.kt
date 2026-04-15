@@ -5,6 +5,7 @@ package com.osrsbot.autotrainer
   import android.content.Intent
   import android.content.ServiceConnection
   import android.net.Uri
+  import android.os.Build
   import android.os.Bundle
   import android.os.IBinder
   import android.provider.Settings
@@ -72,7 +73,11 @@ import com.google.android.material.switchmaterial.SwitchMaterial
 
       private fun startAndBindService() {
           val intent = Intent(this, BotService::class.java)
-          startForegroundService(intent)
+          if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+              startForegroundService(intent)
+          } else {
+              startService(intent)
+          }
           bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE)
       }
 
