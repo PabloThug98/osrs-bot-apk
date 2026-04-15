@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">OSRS Bot</string>
+    <string name="accessibility_description">Automates OSRS Mobile tasks using gestures and screen analysis</string>
+    <string name="overlay_permission_title">Overlay Permission Required</string>
+    <string name="overlay_permission_msg">OSRS Bot needs permission to draw over other apps for the floating control panel.</string>
+    <string name="accessibility_permission_title">Accessibility Service Required</string>
+    <string name="accessibility_permission_msg">Enable OSRS Bot in Accessibility Settings to allow automated gestures.</string>
+    <string name="start">Start</string>
+    <string name="stop">Stop</string>
+    <string name="status_idle">Idle</string>
+    <string name="status_running">Running</string>
+    <string name="status_break">On Break</string>
+</resources>
