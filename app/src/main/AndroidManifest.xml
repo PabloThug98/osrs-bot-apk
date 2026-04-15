@@ -1,8 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <!-- Overlay permission (required for floating bot controls) -->
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+
+    <!-- Foreground service permission -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+
+    <!--
+        FOREGROUND_SERVICE_SPECIAL_USE is required on Android 14+ (API 34)
+        when no other foregroundServiceType category fits.
+        BotService runs a bot loop that does not fit the predefined types
+        (location, camera, etc.), so SPECIAL_USE is the correct declaration.
+        See: https://developer.android.com/about/versions/14/changes/fgs-types-required
+    -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
 
@@ -14,6 +27,7 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.OSRSBot">
 
+        <!-- ── MainActivity ──────────────────────────────────────────────── -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -24,11 +38,29 @@
             </intent-filter>
         </activity>
 
+        <!-- ── BotService ────────────────────────────────────────────────── -->
+        <!--
+            android:exported="false"  — not exposed to other apps (correct).
+            foregroundServiceType="specialUse" — required on API 34+ for
+            services that don't fit location/camera/microphone/etc. types.
+        -->
         <service
             android:name=".BotService"
             android:enabled="true"
-            android:exported="false" />
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
 
+            <!-- Required when foregroundServiceType="specialUse" -->
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="OSRS bot automation loop" />
+        </service>
+
+        <!-- ── OSRSAccessibilityService ──────────────────────────────────── -->
+        <!--
+            android:exported="true"   — required; the system binds this service.
+            android:permission        — restricts binding to the OS only.
+        -->
         <service
             android:name=".OSRSAccessibilityService"
             android:enabled="true"
