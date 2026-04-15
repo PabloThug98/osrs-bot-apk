@@ -45,6 +45,14 @@ class ChocolateDustScript(
     // OSRS mobile: knife is typically in slot 0 (top-left), bars fill rest
     private val dm get() = service.resources.displayMetrics
 
+    override fun onStuck() {
+        Logger.warn("[" + name + "] Stuck — resetting to SETUP_USE_KNIFE")
+        state = State.SETUP_USE_KNIFE
+        barsInInventory = 27
+        detector.invalidateCache()
+        super.onStuck()
+    }
+
     override suspend fun tick() {
         when (state) {
 
