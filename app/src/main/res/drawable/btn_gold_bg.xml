@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Gold 3D CTA button — lighter on top, darker at bottom for depth -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Bottom shadow layer (gives the "raised slab" depth) -->
+    <item android:top="4dp">
+        <shape>
+            <solid android:color="#99552200" />
+            <corners android:radius="14dp" />
+        </shape>
+    </item>
+    <!-- Face layer — gradient from bright to dim + highlight strip at top -->
+    <item android:bottom="4dp">
+        <layer-list>
+            <!-- Main gradient face -->
+            <item>
+                <shape>
+                    <gradient
+                        android:startColor="#FFD04D"
+                        android:centerColor="#FFB800"
+                        android:endColor="#CC8C00"
+                        android:angle="270" />
+                    <corners android:radius="14dp" />
+                </shape>
+            </item>
+            <!-- Top-edge highlight strip (simulates a light source from above) -->
+            <item android:bottom="30dp">
+                <shape>
+                    <gradient
+                        android:startColor="#33FFFFFF"
+                        android:endColor="#00FFFFFF"
+                        android:angle="270" />
+                    <corners android:radius="14dp" />
+                </shape>
+            </item>
+        </layer-list>
+    </item>
+</layer-list>
