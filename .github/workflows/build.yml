@@ -20,7 +20,6 @@ jobs:
         with:
           java-version: '17'
           distribution: 'temurin'
-          cache: gradle
 
       - name: Accept Android SDK licenses
         run: yes | sdkmanager --licenses || true
@@ -29,9 +28,11 @@ jobs:
         run: chmod +x ./gradlew
 
       - name: Build Debug APK
-        run: ./gradlew assembleDebug --no-daemon --stacktrace
-        env:
-          GRADLE_OPTS: '-Xmx2048m -Dfile.encoding=UTF-8'
+        run: |
+          unset _JAVA_OPTIONS
+          unset JAVA_OPTS
+          unset JAVA_TOOL_OPTIONS
+          ./gradlew assembleDebug --no-daemon
 
       - name: Copy APK to release folder
         run: |
@@ -56,7 +57,7 @@ jobs:
           tag_name: latest
           name: 'OSRS Bot v2.0 - Download APK Here'
           body: |
-            ## Download the APK file below to test
+            ## Download the APK file below to test on your phone
             Built automatically from the latest source code.
 
             ### Install steps
@@ -72,7 +73,7 @@ jobs:
             - Level-aware timing for WC/Fishing/Combat
             - Axe-type awareness (dragon/rune = faster chops)
             - Gaussian click offsets for natural-looking clicks
-            - All scripts: miss-streak recovery, stuck detection, cache invalidation
+            - All scripts: miss-streak recovery, stuck detection
             - Combat: priority monster list + eating state
           files: release/OSRS-Bot-v2.apk
           draft: false
