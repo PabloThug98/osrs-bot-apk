@@ -1,17 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/overlayRoot"
-    android:layout_width="220dp"
+    android:layout_width="230dp"
     android:layout_height="wrap_content"
     android:orientation="vertical"
     android:background="@drawable/overlay_bg"
     android:elevation="8dp">
 
-    <!-- Drag Handle / Header -->
+    <!-- ── Drag Handle / Header ── -->
     <LinearLayout
         android:id="@+id/overlayHeader"
         android:layout_width="match_parent"
-        android:layout_height="40dp"
+        android:layout_height="42dp"
         android:orientation="horizontal"
         android:gravity="center_vertical"
         android:background="@color/bg_panel"
@@ -28,11 +28,10 @@
             android:textStyle="bold"
             android:letterSpacing="0.08" />
 
-        <!-- Minimise -->
         <ImageButton
             android:id="@+id/btnMinimize"
-            android:layout_width="30dp"
-            android:layout_height="30dp"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
             android:background="@drawable/btn_overlay_bg"
             android:contentDescription="Minimize"
             android:src="@android:drawable/arrow_up_float"
@@ -40,11 +39,10 @@
             android:scaleType="centerInside"
             android:layout_marginEnd="4dp" />
 
-        <!-- Stop -->
         <ImageButton
             android:id="@+id/btnOverlayStop"
-            android:layout_width="30dp"
-            android:layout_height="30dp"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
             android:background="@drawable/btn_red_bg"
             android:contentDescription="Stop bot"
             android:src="@android:drawable/ic_media_pause"
@@ -52,11 +50,10 @@
             android:scaleType="centerInside"
             android:layout_marginEnd="4dp" />
 
-        <!-- Start -->
         <ImageButton
             android:id="@+id/btnOverlayStart"
-            android:layout_width="30dp"
-            android:layout_height="30dp"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
             android:background="@drawable/btn_green_bg"
             android:contentDescription="Start bot"
             android:src="@android:drawable/ic_media_play"
@@ -64,7 +61,7 @@
             android:scaleType="centerInside" />
     </LinearLayout>
 
-    <!-- Stats Body -->
+    <!-- ── Stats Body ── -->
     <LinearLayout
         android:id="@+id/overlayBody"
         android:layout_width="match_parent"
@@ -72,37 +69,49 @@
         android:orientation="vertical"
         android:padding="10dp">
 
-        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginBottom="5dp">
+        <!-- Script -->
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginBottom="4dp">
             <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Script" android:textColor="@color/text_muted" android:textSize="11sp" />
             <TextView android:id="@+id/tvOvScript" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="—" android:textColor="@color/gold_light" android:textSize="11sp" android:textStyle="bold" />
         </LinearLayout>
 
-        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginBottom="5dp">
+        <!-- Actions -->
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginBottom="4dp">
             <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Actions" android:textColor="@color/text_muted" android:textSize="11sp" />
             <TextView android:id="@+id/tvOvActions" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0" android:textColor="@color/gold_light" android:textSize="11sp" android:textStyle="bold" />
         </LinearLayout>
 
-        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginBottom="5dp">
+        <!-- XP -->
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginBottom="4dp">
             <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="XP Gained" android:textColor="@color/text_muted" android:textSize="11sp" />
             <TextView android:id="@+id/tvOvXP" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0" android:textColor="@color/gold_light" android:textSize="11sp" android:textStyle="bold" />
         </LinearLayout>
 
-        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginBottom="5dp">
+        <!-- GP/hr -->
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginBottom="4dp">
             <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="GP/hr" android:textColor="@color/text_muted" android:textSize="11sp" />
             <TextView android:id="@+id/tvOvGP" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0" android:textColor="@color/green" android:textSize="11sp" android:textStyle="bold" />
         </LinearLayout>
 
-        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginBottom="5dp">
+        <!-- Runtime -->
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginBottom="4dp">
             <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Runtime" android:textColor="@color/text_muted" android:textSize="11sp" />
             <TextView android:id="@+id/tvOvRuntime" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="00:00:00" android:textColor="@color/gold_light" android:textSize="11sp" android:textStyle="bold" android:fontFamily="monospace" />
         </LinearLayout>
 
-        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginBottom="8dp">
+        <!-- Targets saved -->
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginBottom="4dp">
+            <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Targets" android:textColor="@color/text_muted" android:textSize="11sp" />
+            <TextView android:id="@+id/tvOvTargets" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="None set" android:textColor="@color/orange" android:textSize="11sp" android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- Status -->
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginBottom="6dp">
             <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Status" android:textColor="@color/text_muted" android:textSize="11sp" />
             <TextView android:id="@+id/tvOvStatus" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Idle" android:textColor="@color/text_muted" android:textSize="11sp" android:textStyle="bold" />
         </LinearLayout>
 
-        <!-- Current action -->
+        <!-- Current action text -->
         <TextView
             android:id="@+id/tvOvAction"
             android:layout_width="match_parent"
@@ -110,10 +119,31 @@
             android:text="Waiting…"
             android:textColor="#AAAAAA"
             android:textSize="10sp"
-            android:paddingTop="6dp"
-            android:paddingBottom="2dp"
             android:maxLines="2"
-            android:ellipsize="end" />
+            android:ellipsize="end"
+            android:layout_marginBottom="8dp" />
+
+        <!-- ── SELECT TARGET BUTTON ── -->
+        <Button
+            android:id="@+id/btnSelectTarget"
+            android:layout_width="match_parent"
+            android:layout_height="36dp"
+            android:text="🎯 SELECT TARGETS"
+            android:backgroundTint="@color/gold"
+            android:textColor="@color/bg_dark"
+            android:textStyle="bold"
+            android:textSize="11sp"
+            android:layout_marginBottom="4dp" />
+
+        <!-- CLEAR TARGETS -->
+        <Button
+            android:id="@+id/btnClearTargets"
+            android:layout_width="match_parent"
+            android:layout_height="32dp"
+            android:text="Clear Targets"
+            android:backgroundTint="@color/bg_card"
+            android:textColor="@color/text_muted"
+            android:textSize="10sp" />
 
     </LinearLayout>
 

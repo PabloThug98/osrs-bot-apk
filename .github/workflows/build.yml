@@ -1,0 +1,78 @@
+name: Build Debug APK
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Download Gradle wrapper jar
+        run: |
+          mkdir -p gradle/wrapper
+          curl -sL "https://github.com/gradle/gradle/raw/v8.2.0/gradle/wrapper/gradle-wrapper.jar" \
+            -o gradle/wrapper/gradle-wrapper.jar || \
+          wget -q "https://raw.githubusercontent.com/gradle/gradle/v8.2.0/gradle/wrapper/gradle-wrapper.jar" \
+            -O gradle/wrapper/gradle-wrapper.jar
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Build Debug APK
+        run: ./gradlew assembleDebug --no-daemon --stacktrace
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: OSRS-Bot-v2-Debug
+          path: app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 30
+
+      - name: Create/Update Release with APK
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest
+          name: "OSRS Bot v2.0 — Latest Build"
+          body: |
+            ## ✅ Auto-built APK — Download below
+
+            ### What's new in v2.0
+            - **🎯 Visual Target Selector** — tap trees/rocks/fish on screen to save targets
+            - **🐛 Overlay fixed** — Start/Stop/Select buttons all work properly
+            - **🍫 Chocolate Dust Maker** — 180K GP/hr moneymaker
+            - **🌲 Woodcutting** with tree detection
+            - **🛡️ Antiban** — breaks, auto-stop, fatigue, human-like timing
+
+            ### How to install
+            1. Download `app-debug.apk` below
+            2. On your phone: Settings → Security → Allow unknown sources
+            3. Open the downloaded APK and install
+            4. Launch OSRS Bot → grant permissions → enable Accessibility Service
+            5. Select your script → Launch Overlay → switch to OSRS → tap ▶
+
+            ### Using the Target Selector
+            1. Open OSRS and navigate to where you want to bot
+            2. Tap **🎯 SELECT TARGETS** on the floating overlay
+            3. The screen dims — tap on each tree / rock / fish spot
+            4. Tap **✓ DONE** — the bot will now click exactly where you tapped
+          files: app/build/outputs/apk/debug/app-debug.apk
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

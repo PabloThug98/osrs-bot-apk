@@ -6,6 +6,7 @@ import android.graphics.Path
 import android.graphics.Rect
 import com.osrsbot.autotrainer.antiban.AntiBanManager
 import com.osrsbot.autotrainer.detector.ObjectDetector
+import com.osrsbot.autotrainer.selector.TargetStore
 import com.osrsbot.autotrainer.utils.BotConfig
 import com.osrsbot.autotrainer.utils.Logger
 import kotlinx.coroutines.delay
@@ -17,7 +18,7 @@ class WoodcuttingScript(
     detector: ObjectDetector,
 ) : BotScript(service, config, antiBan, detector) {
 
-    override val id = "woodcutting"
+    override val id   = "woodcutting"
     override val name = "🌲 Woodcutting Bot"
 
     private val XP_PER_LOG = 38
@@ -26,38 +27,47 @@ class WoodcuttingScript(
 
     private val STEPS = listOf(
         "Scanning for nearby trees…",
-        "Tree detected — walking to it…",
+        "Walking toward tree…",
         "Right-clicking tree…",
         "Selecting 'Chop down'…",
-        "Chopping… (waiting for log)…",
-        "Log received! Inventory updated.",
-        "Checking inventory space…",
+        "Chopping… waiting for log…",
+        "Log received!",
     )
     private var step = 0
 
     override suspend fun tick() {
         if (logsInInventory >= 27) {
-            setAction("Inventory full — walking to bank…")
-            delay(antiBan.getActionDelay() * 2)
+            setAction("Inventory full — banking logs…")
+            delay(antiBan.getActionDelay() * 3)
             setAction("Depositing logs…")
             delay(antiBan.getActionDelay())
             logsInInventory = 0
-            Logger.ok("Banked logs. Returning to trees.")
+            Logger.ok("Banked logs.")
             return
         }
 
-        val stepMsg = STEPS[step % STEPS.size]
-        setAction(stepMsg)
+        setAction(STEPS[step % STEPS.size])
 
-        val detected = detector.detectObjects("woodcutting")
-        val tree = detected.firstOrNull { it.name.lowercase().contains("tree") }
-
-        if (tree != null) {
-            val dm = service.resources.displayMetrics
-            val nearest = detector.findNearest(detected, dm.widthPixels, dm.heightPixels)
-            nearest?.let { performTap(it.bounds) } ?: performTapRelative(0.5f, 0.4f)
+        // ── Use user-selected targets (trees the user tapped) ──
+        val userTarget = TargetStore.nextTarget()
+        if (userTarget != null) {
+            val (ox, oy) = antiBan.getClickOffset()
+            tap(userTarget.x + ox, userTarget.y + oy)
+            Logger.action("Clicking tree '${userTarget.label}' @ (${userTarget.x.toInt()}, ${userTarget.y.toInt()})")
         } else {
-            performTapRelative(0.5f, 0.4f)
+            // Auto-detect trees via accessibility
+            val dm = service.resources.displayMetrics
+            val detected = detector.detectObjects("woodcutting")
+            val nearest = if (detected.isNotEmpty())
+                detector.findNearest(detected, dm.widthPixels, dm.heightPixels)
+            else null
+
+            if (nearest != null) {
+                val (ox, oy) = antiBan.getClickOffset()
+                tap(nearest.bounds.exactCenterX() + ox, nearest.bounds.exactCenterY() + oy)
+            } else {
+                tapRelative(0.5f, 0.4f)
+            }
         }
 
         delay(antiBan.getClickDelay())
@@ -67,18 +77,14 @@ class WoodcuttingScript(
         if (step % STEPS.size == 0) {
             logsInInventory++
             completeAction(XP_PER_LOG, GP_PER_LOG)
-            Logger.ok("Log chopped! Inventory: $logsInInventory/27 | XP: $xpGained")
+            Logger.ok("Log #${actions} | Inv: $logsInInventory/27 | XP: $xpGained")
         }
     }
 
-    private fun performTap(bounds: Rect) {
-        val (ox, oy) = antiBan.getClickOffset()
-        tap(bounds.exactCenterX() + ox, bounds.exactCenterY() + oy)
-    }
-
-    private fun performTapRelative(fx: Float, fy: Float) {
+    private fun tapRelative(fx: Float, fy: Float) {
         val dm = service.resources.displayMetrics
-        tap(dm.widthPixels * fx, dm.heightPixels * fy)
+        val (ox, oy) = antiBan.getClickOffset()
+        tap(dm.widthPixels * fx + ox, dm.heightPixels * fy + oy)
     }
 
     private fun tap(x: Float, y: Float) {
