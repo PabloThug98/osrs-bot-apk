@@ -3,8 +3,8 @@ package com.osrsbot.autotrainer.scripts
 import android.accessibilityservice.AccessibilityService
 import com.osrsbot.autotrainer.antiban.AntiBanManager
 import com.osrsbot.autotrainer.banking.BankInteractor
+import com.osrsbot.autotrainer.detector.ImageObjectSearcher
 import com.osrsbot.autotrainer.detector.ObjectDetector
-import com.osrsbot.autotrainer.selector.TargetStore
 import com.osrsbot.autotrainer.utils.BotConfig
 import com.osrsbot.autotrainer.utils.GestureHelper
 import com.osrsbot.autotrainer.utils.Logger
@@ -58,7 +58,8 @@ class WoodcuttingScript(
 
     // ── Walker + banker ───────────────────────────────────────────────────────
     private val walker = WalkerManager(service)
-    private val banker = BankInteractor(service)
+    private val banker = BankInteractor(service, detector)
+    private val imageSearcher = ImageObjectSearcher(service)
 
     var treeLocation: WalkerManager.Location? = null
     var bankLocation: WalkerManager.Location? = null
@@ -98,16 +99,12 @@ class WoodcuttingScript(
                 if (logsInInventory >= 27) { state = State.WALK_TO_BANK; return }
                 setAction("Finding tree…")
 
-                // Prefer saved targets that aren't the bank
-                val treeTarget = TargetStore.nextTargetWhere {
-                    !it.label.contains("bank", ignoreCase = true)
-                }
-
-                if (treeTarget != null) {
+                val imageTree = imageSearcher.findTree()
+                if (imageTree != null && imageTree.confidence >= 0.45f) {
                     delay(antiBan.getClickDelay())
                     val (ox, oy) = antiBan.getClickOffset()
-                    if (!tap(treeTarget.x + ox, treeTarget.y + oy)) return
-                    Logger.action("Clicking '${treeTarget.label}' @ (${treeTarget.x.toInt()}, ${treeTarget.y.toInt()})")
+                    if (!tap(imageTree.x + ox, imageTree.y + oy)) return
+                    Logger.action("Image tree locked @ (${imageTree.x.toInt()}, ${imageTree.y.toInt()})")
                 } else {
                     val forceRefresh = treeGoneStreak >= 3
                     val detected = detector.detectObjects("woodcutting", forceRefresh)
@@ -118,9 +115,9 @@ class WoodcuttingScript(
                         delay(antiBan.getClickDelay())
                         val (ox, oy) = antiBan.getClickOffset()
                         if (!tap(nearest.bounds.exactCenterX() + ox, nearest.bounds.exactCenterY() + oy)) return
-                        Logger.action("Detected tree @ (${nearest.bounds.centerX()}, ${nearest.bounds.centerY()})")
+                        Logger.action("Accessibility tree fallback @ (${nearest.bounds.centerX()}, ${nearest.bounds.centerY()})")
                     } else {
-                        setAction("No tree visible — tap 🎯 to save a target!")
+                        setAction("No tree visible — move camera closer to trees")
                         delay(2_500L + Random.nextLong(0L, 500L))
                         return
                     }
@@ -161,8 +158,8 @@ class WoodcuttingScript(
                 treeGoneStreak++
                 setAction("Tree gone — waiting for respawn… ($treeGoneStreak)")
                 if (treeGoneStreak >= 5) {
-                    Logger.warn("Tree hasn't respawned after $treeGoneStreak checks — rotating targets")
-                    TargetStore.nextTarget()
+                    Logger.warn("Tree hasn't respawned after $treeGoneStreak checks — refreshing image search")
+                    detector.invalidateCache()
                     treeGoneStreak = 0
                 }
                 delay(Random.nextLong(10_000L, 18_000L))

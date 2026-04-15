@@ -1,7 +1,10 @@
 package com.osrsbot.autotrainer.banking
 
 import android.accessibilityservice.AccessibilityService
-import com.osrsbot.autotrainer.selector.TargetStore
+import android.graphics.Rect
+import android.view.accessibility.AccessibilityNodeInfo
+import com.osrsbot.autotrainer.detector.ImageObjectSearcher
+import com.osrsbot.autotrainer.detector.ObjectDetector
 import com.osrsbot.autotrainer.utils.GestureHelper
 import com.osrsbot.autotrainer.utils.Logger
 import kotlinx.coroutines.delay
@@ -33,9 +36,13 @@ import kotlin.random.Random
  *
  *   Tip: use the 🎯 target selector on the bank booth / chest and name it "Bank".
  */
-class BankInteractor(private val service: AccessibilityService) {
+class BankInteractor(
+    private val service: AccessibilityService,
+    private val detector: ObjectDetector,
+) {
 
     private val dm get() = service.resources.displayMetrics
+    private val imageSearcher = ImageObjectSearcher(service)
 
     // ── OSRS Mobile bank UI proportions ──────────────────────────────────────
     private val depositX get() = dm.widthPixels  * 0.50f
@@ -60,20 +67,7 @@ class BankInteractor(private val service: AccessibilityService) {
      * Total expected duration: ~5–9 seconds.
      */
     suspend fun depositInventory(): Boolean {
-        // 1. Tap the bank booth / chest
-        val bankTarget = TargetStore.getAll()
-            .firstOrNull { it.label.contains("bank", ignoreCase = true) }
-
-        if (bankTarget != null) {
-            Logger.action("Bank: tapping '${bankTarget.label}' @ (${bankTarget.x.toInt()}, ${bankTarget.y.toInt()})")
-            if (!tap(bankTarget.x + jitter(), bankTarget.y + jitter())) return false
-        } else {
-            // No saved bank target — tap centre-left (common bank-booth area after
-            // the walker drops you off near the bank)
-            Logger.warn("Bank: no 'bank' target saved — tapping estimated position. " +
-                        "Save a target named 'Bank' on the bank booth for accuracy.")
-            if (!tap(dm.widthPixels * 0.38f + jitter(), dm.heightPixels * 0.45f + jitter())) return false
-        }
+        if (!openBank()) return false
 
         // 2. Wait for bank to open (walk-click animation + server response)
         val openWait = Random.nextLong(2_200L, 3_500L)
@@ -81,15 +75,23 @@ class BankInteractor(private val service: AccessibilityService) {
         delay(openWait)
 
         // 3. Tap "Deposit Inventory"
-        if (!tap(depositX + jitter(), depositY + jitter())) return false
-        Logger.ok("Bank: tapped Deposit Inventory @ (${depositX.toInt()}, ${depositY.toInt()})")
+        val depositedByText = tapFirstNodeContaining(
+            listOf("deposit inventory", "deposit carried", "deposit all"),
+        )
+        if (!depositedByText) {
+            if (!tap(depositX + jitter(), depositY + jitter())) return false
+            Logger.ok("Bank: tapped Deposit Inventory fallback @ (${depositX.toInt()}, ${depositY.toInt()})")
+        }
 
         // 4. Wait for deposit animation
         delay(Random.nextLong(900L, 1_500L))
 
         // 5. Close the bank interface
-        if (!tap(closeX + jitter(), closeY + jitter())) return false
-        Logger.ok("Bank: closed interface @ (${closeX.toInt()}, ${closeY.toInt()})")
+        val closedByText = tapFirstNodeContaining(listOf("close", "exit"))
+        if (!closedByText) {
+            if (!tap(closeX + jitter(), closeY + jitter())) return false
+            Logger.ok("Bank: closed interface fallback @ (${closeX.toInt()}, ${closeY.toInt()})")
+        }
 
         // 6. Wait for close animation
         delay(Random.nextLong(700L, 1_200L))
@@ -102,13 +104,26 @@ class BankInteractor(private val service: AccessibilityService) {
      * to withdraw something (future scripts can extend this).
      */
     suspend fun openBank(): Boolean {
-        val bankTarget = TargetStore.getAll()
-            .firstOrNull { it.label.contains("bank", ignoreCase = true) }
-        if (bankTarget != null) {
-            if (!tap(bankTarget.x + jitter(), bankTarget.y + jitter())) return false
-        } else {
-            if (!tap(dm.widthPixels * 0.38f + jitter(), dm.heightPixels * 0.45f + jitter())) return false
+        val detectedBank = detector.detectObjects("woodcutting", true)
+            .filter { it.name.contains("bank", ignoreCase = true) || it.name.contains("chest", ignoreCase = true) }
+            .maxByOrNull { it.confidence }
+        if (detectedBank != null) {
+            Logger.action("Bank: accessibility target ${detectedBank.name}")
+            if (!tap(detectedBank.bounds.exactCenterX() + jitter(), detectedBank.bounds.exactCenterY() + jitter())) return false
+            delay(Random.nextLong(2_200L, 3_500L))
+            return true
         }
+
+        val imageBank = imageSearcher.findBank()
+        if (imageBank != null && imageBank.confidence >= 0.38f) {
+            Logger.action("Bank: image target @ (${imageBank.x.toInt()}, ${imageBank.y.toInt()})")
+            if (!tap(imageBank.x + jitter(), imageBank.y + jitter())) return false
+            delay(Random.nextLong(2_200L, 3_500L))
+            return true
+        }
+
+        Logger.warn("Bank: no bank object found — tapping conservative bank area fallback.")
+        if (!tap(dm.widthPixels * 0.38f + jitter(), dm.heightPixels * 0.45f + jitter())) return false
         delay(Random.nextLong(2_200L, 3_500L))
         return true
     }
@@ -119,4 +134,34 @@ class BankInteractor(private val service: AccessibilityService) {
 
     private suspend fun tap(x: Float, y: Float): Boolean =
         GestureHelper.tap(service, x, y, Random.nextLong(65L, 120L))
+
+    private suspend fun tapFirstNodeContaining(keywords: List<String>): Boolean {
+        val root = service.rootInActiveWindow ?: return false
+        val match = findNode(root, keywords.map { it.lowercase() })
+        if (match != null) {
+            val bounds = Rect()
+            match.getBoundsInScreen(bounds)
+            if (!bounds.isEmpty) {
+                Logger.action("Bank UI: tapping '${keywords.first()}' by text")
+                return tap(bounds.exactCenterX() + jitter(6f), bounds.exactCenterY() + jitter(6f))
+            }
+        }
+        return false
+    }
+
+    private fun findNode(node: AccessibilityNodeInfo, keywords: List<String>): AccessibilityNodeInfo? {
+        val label = listOf(
+            node.text?.toString().orEmpty(),
+            node.contentDescription?.toString().orEmpty(),
+        ).joinToString(" ").lowercase()
+
+        if (node.isVisibleToUser && keywords.any { label.contains(it) }) return node
+
+        for (i in 0 until node.childCount) {
+            val child = node.getChild(i) ?: continue
+            val found = findNode(child, keywords)
+            if (found != null) return found
+        }
+        return null
+    }
 }

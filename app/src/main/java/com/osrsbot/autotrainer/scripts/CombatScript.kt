@@ -2,8 +2,8 @@ package com.osrsbot.autotrainer.scripts
 
   import android.accessibilityservice.AccessibilityService
   import com.osrsbot.autotrainer.antiban.AntiBanManager
+  import com.osrsbot.autotrainer.detector.ImageObjectSearcher
   import com.osrsbot.autotrainer.detector.ObjectDetector
-  import com.osrsbot.autotrainer.selector.TargetStore
   import com.osrsbot.autotrainer.utils.BotConfig
   import com.osrsbot.autotrainer.utils.GestureHelper
   import com.osrsbot.autotrainer.utils.Logger
@@ -26,6 +26,7 @@ package com.osrsbot.autotrainer.scripts
       private var hp = 99
       private val EAT_HP_THRESHOLD = 45
       private var missStreak = 0
+      private val imageSearcher = ImageObjectSearcher(service)
 
       // Priority monster keywords - checked in order, first match wins
       private val PRIORITY_MONSTERS = listOf(
@@ -52,16 +53,13 @@ package com.osrsbot.autotrainer.scripts
                   hp -= Random.nextInt(1, 4)
                   if (hp <= EAT_HP_THRESHOLD) { state = State.EATING; return }
 
-                  setAction("Looking for monster…")
-                  val userTarget = TargetStore.nextTargetWhere {
-                      !it.label.contains("bank", ignoreCase = true)
-                  }
-
-                  if (userTarget != null) {
+                  setAction("Image-searching for monster…")
+                  val imageTarget = imageSearcher.findNpc()
+                  if (imageTarget != null && imageTarget.confidence >= 0.40f) {
                       delay(antiBan.getClickDelay())
                       val (ox, oy) = antiBan.getClickOffset()
-                      if (!tap(userTarget.x + ox.toFloat(), userTarget.y + oy.toFloat())) return
-                      Logger.action("Attacking saved target: " + userTarget.label)
+                      if (!tap(imageTarget.x + ox.toFloat(), imageTarget.y + oy.toFloat())) return
+                      Logger.action("Image target selected: " + imageTarget.label)
                       state = State.IN_COMBAT
                       missStreak = 0
                       return
@@ -81,12 +79,12 @@ package com.osrsbot.autotrainer.scripts
                       delay(antiBan.getClickDelay())
                       val (ox, oy) = antiBan.getClickOffset()
                       if (!tap(monster.bounds.exactCenterX() + ox, monster.bounds.exactCenterY() + oy)) return
-                      Logger.action("Attacking: " + monster.name + " conf=" + "%.2f".format(monster.confidence))
+                      Logger.action("Accessibility monster fallback: " + monster.name + " conf=" + "%.2f".format(monster.confidence))
                       state = State.IN_COMBAT
                       missStreak = 0
                   } else {
                       missStreak++
-                      setAction("No monster found (miss " + missStreak + "). Set targets via overlay.")
+                      setAction("No monster image found (miss " + missStreak + "). Move camera closer.")
                       delay(2_000L + Random.nextLong(0, 500))
                   }
               }
@@ -101,15 +99,7 @@ package com.osrsbot.autotrainer.scripts
               }
 
               State.LOOTING -> {
-                  setAction("Looting drops…")
-                  val userTarget = TargetStore.peekCurrent()
-                  if (userTarget != null) {
-                      val (ox, oy) = antiBan.getClickOffset()
-                      if (!tap(
-                          userTarget.x + ox + Random.nextInt(-15, 15),
-                          userTarget.y + oy + Random.nextInt(20, 40).toFloat()
-                      )) return
-                  }
+                  setAction("Cooldown after fight…")
                   delay(antiBan.getActionDelay() * 2)
                   detector.invalidateCache()
                   state = State.FIND_MONSTER
