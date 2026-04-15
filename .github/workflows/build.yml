@@ -27,11 +27,15 @@ jobs:
       - name: Make gradlew executable
         run: chmod +x ./gradlew
 
+      - name: Download Gradle wrapper JAR
+        run: |
+          mkdir -p gradle/wrapper
+          curl -L -o gradle/wrapper/gradle-wrapper.jar \
+            https://github.com/gradle/gradle/raw/v8.2.0/gradle/wrapper/gradle-wrapper.jar
+
       - name: Build Debug APK
         run: |
           unset _JAVA_OPTIONS
-          unset JAVA_OPTS
-          unset JAVA_TOOL_OPTIONS
           ./gradlew assembleDebug --no-daemon
 
       - name: Copy APK to release folder
@@ -57,24 +61,23 @@ jobs:
           tag_name: latest
           name: 'OSRS Bot v2.0 - Download APK Here'
           body: |
-            ## Download the APK file below to test on your phone
-            Built automatically from the latest source code.
+            ## Tap the .apk file below to download and test on your phone
 
             ### Install steps
-            1. Tap OSRS-Bot-v2.apk below to download
+            1. Tap OSRS-Bot-v2.apk below
             2. Android: Settings -> Security -> Allow unknown sources
             3. Install the APK, open OSRS Bot
             4. Grant Overlay + Accessibility permissions
-            5. Pick script, tap Launch Floating Overlay
-            6. Switch to OSRS, tap TARGET to mark objects, then START
+            5. Pick your script, tap Launch Floating Overlay
+            6. Switch to OSRS, tap TARGET to mark trees/spots/monsters, then START
 
-            ### v2.0 improvements
+            ### v2.0 changes
             - ObjectDetector v2: 80+ keywords, confidence scoring, deduplication, caching
             - Level-aware timing for WC/Fishing/Combat
-            - Axe-type awareness (dragon/rune = faster chops)
+            - Axe-type awareness (dragon/rune axe = faster chops)
             - Gaussian click offsets for natural-looking clicks
-            - All scripts: miss-streak recovery, stuck detection
-            - Combat: priority monster list + eating state
+            - All scripts: miss-streak recovery and stuck detection
+            - Combat: priority monster list and eating state
           files: release/OSRS-Bot-v2.apk
           draft: false
           prerelease: false
