@@ -243,7 +243,7 @@ class ObjectDetector(
             .replace('-', ' ')
             .replace('_', ' ')
             .replace(Regex("[^a-z0-9/ ]+"), " ")
-            .replace(Regex("\s+"), " ")
+            .replace(Regex("\\s+"), " ")
             .trim()
 
     private fun hasPhrase(label: String, phrase: String): Boolean =
