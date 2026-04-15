@@ -1,9 +1,8 @@
 package com.osrsbot.autotrainer.banking
 
 import android.accessibilityservice.AccessibilityService
-import android.accessibilityservice.GestureDescription
-import android.graphics.Path
 import com.osrsbot.autotrainer.selector.TargetStore
+import com.osrsbot.autotrainer.utils.GestureHelper
 import com.osrsbot.autotrainer.utils.Logger
 import kotlinx.coroutines.delay
 import kotlin.random.Random
@@ -67,13 +66,13 @@ class BankInteractor(private val service: AccessibilityService) {
 
         if (bankTarget != null) {
             Logger.action("Bank: tapping '${bankTarget.label}' @ (${bankTarget.x.toInt()}, ${bankTarget.y.toInt()})")
-            tap(bankTarget.x + jitter(), bankTarget.y + jitter())
+            if (!tap(bankTarget.x + jitter(), bankTarget.y + jitter())) return false
         } else {
             // No saved bank target — tap centre-left (common bank-booth area after
             // the walker drops you off near the bank)
             Logger.warn("Bank: no 'bank' target saved — tapping estimated position. " +
                         "Save a target named 'Bank' on the bank booth for accuracy.")
-            tap(dm.widthPixels * 0.38f + jitter(), dm.heightPixels * 0.45f + jitter())
+            if (!tap(dm.widthPixels * 0.38f + jitter(), dm.heightPixels * 0.45f + jitter())) return false
         }
 
         // 2. Wait for bank to open (walk-click animation + server response)
@@ -82,14 +81,14 @@ class BankInteractor(private val service: AccessibilityService) {
         delay(openWait)
 
         // 3. Tap "Deposit Inventory"
-        tap(depositX + jitter(), depositY + jitter())
+        if (!tap(depositX + jitter(), depositY + jitter())) return false
         Logger.ok("Bank: tapped Deposit Inventory @ (${depositX.toInt()}, ${depositY.toInt()})")
 
         // 4. Wait for deposit animation
         delay(Random.nextLong(900L, 1_500L))
 
         // 5. Close the bank interface
-        tap(closeX + jitter(), closeY + jitter())
+        if (!tap(closeX + jitter(), closeY + jitter())) return false
         Logger.ok("Bank: closed interface @ (${closeX.toInt()}, ${closeY.toInt()})")
 
         // 6. Wait for close animation
@@ -106,9 +105,9 @@ class BankInteractor(private val service: AccessibilityService) {
         val bankTarget = TargetStore.getAll()
             .firstOrNull { it.label.contains("bank", ignoreCase = true) }
         if (bankTarget != null) {
-            tap(bankTarget.x + jitter(), bankTarget.y + jitter())
+            if (!tap(bankTarget.x + jitter(), bankTarget.y + jitter())) return false
         } else {
-            tap(dm.widthPixels * 0.38f + jitter(), dm.heightPixels * 0.45f + jitter())
+            if (!tap(dm.widthPixels * 0.38f + jitter(), dm.heightPixels * 0.45f + jitter())) return false
         }
         delay(Random.nextLong(2_200L, 3_500L))
         return true
@@ -118,13 +117,6 @@ class BankInteractor(private val service: AccessibilityService) {
 
     private fun jitter(range: Float = 12f) = Random.nextFloat() * range * 2f - range
 
-    private fun tap(x: Float, y: Float) {
-        val safeX = x.coerceIn(1f, dm.widthPixels.toFloat()  - 1f)
-        val safeY = y.coerceIn(1f, dm.heightPixels.toFloat() - 1f)
-        val path   = Path().apply { moveTo(safeX, safeY) }
-        val stroke = GestureDescription.StrokeDescription(path, 0L, 90L)
-        service.dispatchGesture(
-            GestureDescription.Builder().addStroke(stroke).build(), null, null
-        )
-    }
+    private suspend fun tap(x: Float, y: Float): Boolean =
+        GestureHelper.tap(service, x, y, Random.nextLong(65L, 120L))
 }

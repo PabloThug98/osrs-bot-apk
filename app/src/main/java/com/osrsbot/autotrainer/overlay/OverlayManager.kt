@@ -38,8 +38,8 @@ package com.osrsbot.autotrainer.overlay
                   WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
           PixelFormat.TRANSLUCENT
       ).apply {
-          gravity = Gravity.TOP or Gravity.END
-          x = 12
+          gravity = Gravity.TOP or Gravity.START
+          x = 24
           y = 140
       }
 
@@ -72,10 +72,17 @@ package com.osrsbot.autotrainer.overlay
               Toast.makeText(context, "Targets cleared.", Toast.LENGTH_SHORT).show()
           }
 
-          // Drag only on the handle icon — buttons are NOT blocked
           setupDrag(view.findViewById(R.id.dragHandle), view)
+          setupDrag(view.findViewById(R.id.tvOverlayTitle), view)
 
-          windowManager.addView(view, params)
+          try {
+              windowManager.addView(view, params)
+          } catch (e: Exception) {
+              overlayView = null
+              Logger.error("Overlay failed to launch: ${e.message}")
+              Toast.makeText(context, "Overlay failed to launch. Check overlay permission.", Toast.LENGTH_LONG).show()
+              return
+          }
           updateTargetCount()
           Logger.ok("Overlay shown.")
       }
@@ -97,7 +104,7 @@ package com.osrsbot.autotrainer.overlay
               Logger.ok("$count target(s) selected.")
               Toast.makeText(context, "$count target(s) saved! Bot will click them.", Toast.LENGTH_LONG).show()
           }
-          selectorOverlay?.show(label)
+          selectorOverlay?.show(label, script)
       }
 
       private fun updateTargetCount() {
@@ -139,7 +146,7 @@ package com.osrsbot.autotrainer.overlay
                       val dy = (event.rawY - startRawY).toInt()
                       if (dx * dx + dy * dy > 16) dragging = true
                       if (dragging) {
-                          params.x = (initX - dx).coerceAtLeast(0)
+                          params.x = (initX + dx).coerceAtLeast(0)
                           params.y = (initY + dy).coerceAtLeast(0)
                           windowManager.updateViewLayout(overlay, params)
                       }

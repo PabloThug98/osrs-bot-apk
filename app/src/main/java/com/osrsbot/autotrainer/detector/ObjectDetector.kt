@@ -2,13 +2,11 @@ package com.osrsbot.autotrainer.detector
 
   import android.accessibilityservice.AccessibilityService
   import android.graphics.Rect
-  import android.view.accessibility.AccessibilityNodeInfo
   import com.osrsbot.autotrainer.utils.Logger
 
   data class DetectedObject(
       val name: String,
       val bounds: Rect,
-      val node: AccessibilityNodeInfo?,
       val confidence: Float = 1.0f,
       val isClickable: Boolean = false,
   )
@@ -24,6 +22,8 @@ package com.osrsbot.autotrainer.detector
    *  - Result caching: reuses last scan within CACHE_TTL_MS
    *  - Minimum bounds guard: ignores 0-size or tiny rects
    *  - Sorted output: highest confidence first
+   *  - Visibility/screen clipping guard to avoid tapping off-screen or hidden nodes
+   *  - Label normalization for OSRS-style action text such as "Chop down Oak tree"
    */
   class ObjectDetector(private val service: AccessibilityService) {
 
@@ -33,6 +33,8 @@ package com.osrsbot.autotrainer.detector
           private const val EXACT_CONFIDENCE   = 1.00f
           private const val PARTIAL_CONFIDENCE = 0.65f
           private const val CLICKABLE_BONUS    = 0.10f
+          private const val ACTION_VERB_BONUS  = 0.08f
+          private const val MIN_OBJECT_SIZE_PX = 6
       }
 
       // Each Pair: keyword to isExact (true = whole-label match, false = contains)
@@ -51,9 +53,9 @@ package com.osrsbot.autotrainer.detector
       )
 
       private val FISH_KEYWORDS = listOf(
-          "fishing spot" to true,
+          "fishing spot" to true, "fishing-spot" to true,
           "rod fishing spot" to true, "net fishing spot" to true,
-          "cage/harpoon" to true, "bait fishing spot" to true,
+          "cage/harpoon" to true, "cage harpoon" to true, "bait fishing spot" to true,
           "lure fishing spot" to true,
           "fly fishing spot" to true,
           "karambwan vessel" to true,
@@ -124,7 +126,13 @@ package com.osrsbot.autotrainer.detector
           val root = service.rootInActiveWindow ?: return emptyList()
           val pairs = keywordsFor(scriptId)
           val raw   = mutableListOf<DetectedObject>()
-          traverseNode(root, pairs, raw)
+          val screen = Rect(
+              0,
+              0,
+              service.resources.displayMetrics.widthPixels,
+              service.resources.displayMetrics.heightPixels,
+          )
+          traverseNode(root, scriptId, pairs, screen, raw)
 
           val deduped = deduplicate(raw)
           val sorted  = deduped.sortedByDescending { it.confidence }
@@ -168,30 +176,46 @@ package com.osrsbot.autotrainer.detector
       }
 
       private fun traverseNode(
-          node: AccessibilityNodeInfo,
+          node: android.view.accessibility.AccessibilityNodeInfo,
+          scriptId: String,
           keywords: List<Pair<String, Boolean>>,
+          screen: Rect,
           results: MutableList<DetectedObject>,
       ) {
-          val desc  = node.contentDescription?.toString()?.lowercase()?.trim() ?: ""
-          val text  = node.text?.toString()?.lowercase()?.trim() ?: ""
-          val label = if (desc.isNotEmpty()) desc else text
+          val desc = node.contentDescription?.toString().orEmpty()
+          val text = node.text?.toString().orEmpty()
+          val rawLabel = listOf(desc, text)
+              .filter { it.isNotBlank() }
+              .distinct()
+              .joinToString(" ")
+          val label = normalizeLabel(rawLabel)
 
-          if (label.isNotEmpty()) {
+          if (label.isNotEmpty() && node.isVisibleToUser) {
               val bounds = Rect()
               node.getBoundsInScreen(bounds)
-              if (!bounds.isEmpty && bounds.width() >= 4 && bounds.height() >= 4) {
+              val visibleBounds = Rect(bounds)
+              val visible = visibleBounds.intersect(screen)
+              if (visible && !visibleBounds.isEmpty &&
+                  visibleBounds.width() >= MIN_OBJECT_SIZE_PX &&
+                  visibleBounds.height() >= MIN_OBJECT_SIZE_PX) {
                   val isClickable = node.isClickable || node.isLongClickable
+                  val hasActionVerb = hasUsefulActionVerb(scriptId, label)
                   keywords.forEach { (kw, exact) ->
+                      val normalizedKeyword = normalizeLabel(kw)
                       val matches = if (exact)
-                          label == kw || label.startsWith(kw + " ") || label.endsWith(" " + kw)
+                          hasPhrase(label, normalizedKeyword)
                       else
-                          label.contains(kw)
+                          label.contains(normalizedKeyword)
                       if (matches) {
                           val base = if (exact) EXACT_CONFIDENCE else PARTIAL_CONFIDENCE
-                          val conf = (base + if (isClickable) CLICKABLE_BONUS else 0f).coerceAtMost(1.0f)
-                          val name = kw.split(" ").joinToString(" ") { it.replaceFirstChar { c -> c.uppercase() } }
-                          results.add(DetectedObject(name, Rect(bounds), node, conf, isClickable))
-                          Logger.action("Detected: " + name + " conf=" + "%.2f".format(conf) + " at " + bounds)
+                          val conf = (
+                                  base +
+                                          if (isClickable) CLICKABLE_BONUS else 0f +
+                                                  if (hasActionVerb) ACTION_VERB_BONUS else 0f
+                                  ).coerceAtMost(1.0f)
+                          val name = normalizedKeyword.split(" ")
+                              .joinToString(" ") { it.replaceFirstChar { c -> c.uppercase() } }
+                          results.add(DetectedObject(name, Rect(visibleBounds), conf, isClickable))
                       }
                   }
               }
@@ -199,9 +223,30 @@ package com.osrsbot.autotrainer.detector
 
           for (i in 0 until node.childCount) {
               val child = node.getChild(i) ?: continue
-              traverseNode(child, keywords, results)
+              traverseNode(child, scriptId, keywords, screen, results)
               child.recycle()
           }
+      }
+
+      private fun normalizeLabel(value: String): String =
+          value.lowercase()
+              .replace('-', ' ')
+              .replace('_', ' ')
+              .replace(Regex("[^a-z0-9/ ]+"), " ")
+              .replace(Regex("\\s+"), " ")
+              .trim()
+
+      private fun hasPhrase(label: String, phrase: String): Boolean =
+          label == phrase || " $label ".contains(" $phrase ")
+
+      private fun hasUsefulActionVerb(scriptId: String, label: String): Boolean = when (scriptId) {
+          "woodcutting" -> label.contains("chop") || label.contains("cut")
+          "fishing" -> label.contains("fish") || label.contains("net") ||
+                  label.contains("lure") || label.contains("harpoon") || label.contains("cage")
+          "combat" -> label.contains("attack") || label.contains("fight")
+          "chocolate" -> label.contains("use") || label.contains("make") ||
+                  label.contains("grind") || label.contains("bank")
+          else -> false
       }
 
       private fun deduplicate(items: List<DetectedObject>): List<DetectedObject> {

@@ -33,6 +33,7 @@ class BotService : LifecycleService() {
     private var config    = BotConfig()
     private var startTimeMs = 0L
     private var onBreak   = false
+    private var recoveryCount = 0
 
     var isRunning = false
         private set
@@ -52,7 +53,13 @@ class BotService : LifecycleService() {
         Logger.ok("BotService created.")
     }
 
-    fun updateConfig(newConfig: BotConfig) { config = newConfig }
+    fun updateConfig(newConfig: BotConfig) {
+        config = newConfig
+        getSharedPreferences("osrsbot", MODE_PRIVATE)
+            .edit()
+            .putString("script", newConfig.scriptId)
+            .apply()
+    }
 
     fun showOverlay() {
         overlay?.show(onStart = { startBot() }, onStop = { stopBot() })
@@ -71,6 +78,7 @@ class BotService : LifecycleService() {
         }
         isRunning   = true
         onBreak     = false
+        recoveryCount = 0
         startTimeMs = System.currentTimeMillis()
         Logger.ok("Bot starting: ${ScriptInfo.name(config.scriptId)}")
         statusListener?.invoke("Running", true)
@@ -129,12 +137,41 @@ class BotService : LifecycleService() {
                             Logger.warn("BotService: calling onStuck() for ${script.name}")
                             statusListener?.invoke("Stuck — recovering…", true)
                         }
+                        recoveryCount++
                         script.onStuck()
                         delay(1_000L)   // brief pause so recovery doesn't loop instantly
+                        if (recoveryCount >= MAX_RECOVERIES_PER_RUN) {
+                            withContext(Dispatchers.Main) {
+                                Logger.error("Too many recoveries in one run — stopping bot to prevent bad clicks.")
+                                statusListener?.invoke("Stopped after repeated recovery", false)
+                                stopBot()
+                            }
+                            break
+                        }
                     }
 
                     // ── Normal tick ──────────────────────────────────────────
-                    script.tick()
+                    try {
+                        script.tick()
+                    } catch (e: CancellationException) {
+                        throw e
+                    } catch (e: Exception) {
+                        recoveryCount++
+                        withContext(Dispatchers.Main) {
+                            Logger.error("Script error in ${script.name}: ${e.message ?: e::class.java.simpleName}")
+                            statusListener?.invoke("Script error — recovering…", true)
+                        }
+                        script.onStuck()
+                        delay(1_500L)
+                        if (recoveryCount >= MAX_RECOVERIES_PER_RUN) {
+                            withContext(Dispatchers.Main) {
+                                Logger.error("Too many script errors in one run — stopping bot.")
+                                statusListener?.invoke("Stopped after repeated errors", false)
+                                stopBot()
+                            }
+                            break
+                        }
+                    }
                     withContext(Dispatchers.Main) {
                         updateOverlayStats(script, antiBan, "Running")
                         updateNotification(script)
@@ -220,5 +257,6 @@ class BotService : LifecycleService() {
 
     companion object {
         const val CHANNEL_ID = "osrs_bot_channel"
+        private const val MAX_RECOVERIES_PER_RUN = 5
     }
 }

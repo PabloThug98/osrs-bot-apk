@@ -1,12 +1,11 @@
 package com.osrsbot.autotrainer.scripts
 
 import android.accessibilityservice.AccessibilityService
-import android.accessibilityservice.GestureDescription
-import android.graphics.Path
 import com.osrsbot.autotrainer.antiban.AntiBanManager
 import com.osrsbot.autotrainer.detector.ObjectDetector
 import com.osrsbot.autotrainer.selector.TargetStore
 import com.osrsbot.autotrainer.utils.BotConfig
+import com.osrsbot.autotrainer.utils.GestureHelper
 import com.osrsbot.autotrainer.utils.Logger
 import kotlinx.coroutines.delay
 import kotlin.random.Random
@@ -66,15 +65,17 @@ class ChocolateDustScript(
 
                 // Target 0 = knife, Target 1 = chocolate bar (user should set these)
                 val targets = TargetStore.getAll()
-                val knifeTarget = targets.getOrNull(0)
+                val knifeTarget = targets.firstOrNull {
+                    it.label.contains("knife", ignoreCase = true)
+                } ?: targets.getOrNull(0)
 
                 if (knifeTarget != null) {
                     val (ox, oy) = antiBan.getClickOffset()
-                    tap(knifeTarget.x + ox.toFloat(), knifeTarget.y + oy.toFloat())
+                    if (!tap(knifeTarget.x + ox.toFloat(), knifeTarget.y + oy.toFloat())) return
                     Logger.action("Tapping knife slot")
                 } else {
                     // Fallback: knife is usually top-left of inventory
-                    tapRelative(0.30f, 0.62f)
+                    if (!tapRelative(0.30f, 0.62f)) return
                     Logger.action("Tapping knife (fallback position)")
                 }
 
@@ -87,17 +88,20 @@ class ChocolateDustScript(
                 delay(antiBan.getClickDelay())
 
                 val targets = TargetStore.getAll()
-                val barTarget = targets.getOrNull(1) ?: targets.getOrNull(0)
+                val barTarget = targets.firstOrNull {
+                    it.label.contains("chocolate", ignoreCase = true) ||
+                            it.label.contains("bar", ignoreCase = true)
+                } ?: targets.getOrNull(1) ?: targets.getOrNull(0)
 
                 if (barTarget != null) {
                     val (ox, oy) = antiBan.getClickOffset()
                     // If only one target set, offset slightly to hit bar slot next to knife
                     val offsetX = if (targets.size < 2) 80f else 0f
-                    tap(barTarget.x + ox.toFloat() + offsetX, barTarget.y + oy.toFloat())
+                    if (!tap(barTarget.x + ox.toFloat() + offsetX, barTarget.y + oy.toFloat())) return
                     Logger.action("Tapping bar slot")
                 } else {
                     // Fallback: bar is usually slot next to knife
-                    tapRelative(0.46f, 0.62f)
+                    if (!tapRelative(0.46f, 0.62f)) return
                     Logger.action("Tapping bar (fallback position)")
                 }
 
@@ -109,7 +113,7 @@ class ChocolateDustScript(
                 setAction("Confirming Make-All…")
                 // Make-X dialog appears — tap "Make All" button (bottom-centre of dialog)
                 delay(antiBan.getClickDelay())
-                tapRelative(0.5f, 0.88f)   // Make-All button is near bottom of screen
+                if (!tapRelative(0.5f, 0.88f)) return
                 Logger.action("Tapping Make-All in dialog")
 
                 delay(antiBan.getActionDelay())
@@ -142,14 +146,11 @@ class ChocolateDustScript(
         }
     }
 
-    private fun tapRelative(fx: Float, fy: Float) {
+    private suspend fun tapRelative(fx: Float, fy: Float): Boolean {
         val (ox, oy) = antiBan.getClickOffset()
-        tap(dm.widthPixels * fx + ox.toFloat(), dm.heightPixels * fy + oy.toFloat())
+        return tap(dm.widthPixels * fx + ox.toFloat(), dm.heightPixels * fy + oy.toFloat())
     }
 
-    private fun tap(x: Float, y: Float) {
-        val path = Path().apply { moveTo(x.coerceAtLeast(1f), y.coerceAtLeast(1f)) }
-        val stroke = GestureDescription.StrokeDescription(path, 0, 80)
-        service.dispatchGesture(GestureDescription.Builder().addStroke(stroke).build(), null, null)
-    }
+    private suspend fun tap(x: Float, y: Float): Boolean =
+        GestureHelper.tap(service, x, y, antiBan.getTapDurationMs())
 }

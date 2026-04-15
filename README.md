@@ -16,11 +16,12 @@ Android bot for Old School RuneScape Mobile using Accessibility Service + floati
 - Human-like click timing & random offsets
 - Fatigue simulation (slows down over time like a real player)
 
-### Floating Overlay (FIXED)
-- Fully draggable — drag the header bar anywhere on screen
+### Floating Overlay
+- Draggable from the handle or title area
 - Start / Stop buttons work without clicking through to the game
 - Shows: Script, Actions, XP, GP/hr, Runtime, Status, Current action
 - Minimisable to just the header bar
+- Target selector supports tap-to-add and tap-again-to-remove
 
 ### Object / Tree Detector
 - Scans screen via Accessibility Service for trees, items, monsters, fishing spots
@@ -47,7 +48,7 @@ Android bot for Old School RuneScape Mobile using Accessibility Service + floati
 2. Open OSRS Bot app
 3. Tap **Grant Permissions** → allow overlay
 4. Tap **Open Accessibility Settings** → enable OSRS Bot
-5. Select your script and configure settings
+5. Select a money-making or skilling script and configure settings
 6. Tap **Launch Floating Overlay**
 7. Switch to OSRS — the overlay floats on top
 8. Tap ▶ on the overlay to start

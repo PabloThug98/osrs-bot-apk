@@ -1,12 +1,11 @@
 package com.osrsbot.autotrainer.scripts
 
   import android.accessibilityservice.AccessibilityService
-  import android.accessibilityservice.GestureDescription
-  import android.graphics.Path
   import com.osrsbot.autotrainer.antiban.AntiBanManager
   import com.osrsbot.autotrainer.detector.ObjectDetector
   import com.osrsbot.autotrainer.selector.TargetStore
   import com.osrsbot.autotrainer.utils.BotConfig
+  import com.osrsbot.autotrainer.utils.GestureHelper
   import com.osrsbot.autotrainer.utils.Logger
   import kotlinx.coroutines.delay
   import kotlin.random.Random
@@ -44,11 +43,13 @@ package com.osrsbot.autotrainer.scripts
                   if (fishInInventory >= 27) { state = State.BANKING; return }
                   setAction("Looking for fishing spot…")
 
-                  val userTarget = TargetStore.nextTarget()
+                  val userTarget = TargetStore.nextTargetWhere {
+                      !it.label.contains("bank", ignoreCase = true)
+                  }
                   if (userTarget != null) {
                       delay(antiBan.getClickDelay())
                       val (ox, oy) = antiBan.getClickOffset()
-                      tap(userTarget.x + ox.toFloat(), userTarget.y + oy.toFloat())
+                      if (!tap(userTarget.x + ox.toFloat(), userTarget.y + oy.toFloat())) return
                       Logger.action("Clicking saved spot: " + userTarget.label)
                       state = State.FISHING
                       missStreak = 0
@@ -65,7 +66,7 @@ package com.osrsbot.autotrainer.scripts
                   if (spot != null) {
                       delay(antiBan.getClickDelay())
                       val (ox, oy) = antiBan.getClickOffset()
-                      tap(spot.bounds.exactCenterX() + ox, spot.bounds.exactCenterY() + oy)
+                      if (!tap(spot.bounds.exactCenterX() + ox, spot.bounds.exactCenterY() + oy)) return
                       Logger.action("Detected spot: " + spot.name + " conf=" + "%.2f".format(spot.confidence))
                       state = State.FISHING
                       missStreak = 0
@@ -100,10 +101,7 @@ package com.osrsbot.autotrainer.scripts
           }
       }
 
-      private fun tap(x: Float, y: Float) {
-          val path = Path().apply { moveTo(x.coerceAtLeast(1f), y.coerceAtLeast(1f)) }
-          val stroke = GestureDescription.StrokeDescription(path, 0, 80)
-          service.dispatchGesture(GestureDescription.Builder().addStroke(stroke).build(), null, null)
-      }
+      private suspend fun tap(x: Float, y: Float): Boolean =
+          GestureHelper.tap(service, x, y, antiBan.getTapDurationMs())
   }
   

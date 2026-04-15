@@ -18,8 +18,16 @@ object TargetStore {
     private val targets = mutableListOf<GameTarget>()
 
     fun add(target: GameTarget) { targets.add(target) }
-    fun remove(index: Int) { if (index in targets.indices) targets.removeAt(index) }
-    fun clear() { targets.clear() }
+    fun remove(index: Int) {
+        if (index in targets.indices) {
+            targets.removeAt(index)
+            if (targets.isEmpty()) cursor = 0 else cursor %= targets.size
+        }
+    }
+    fun clear() {
+        targets.clear()
+        cursor = 0
+    }
     fun getAll(): List<GameTarget> = targets.toList()
     fun isEmpty(): Boolean = targets.isEmpty()
     fun count(): Int = targets.size
@@ -31,6 +39,16 @@ object TargetStore {
         val t = targets[cursor % targets.size]
         cursor = (cursor + 1) % targets.size
         return t
+    }
+
+    fun nextTargetWhere(predicate: (GameTarget) -> Boolean): GameTarget? {
+        if (targets.isEmpty()) return null
+        repeat(targets.size) {
+            val t = targets[cursor % targets.size]
+            cursor = (cursor + 1) % targets.size
+            if (predicate(t)) return t
+        }
+        return null
     }
 
     /** Returns the most recently accessed target without advancing the cursor */

@@ -1,13 +1,12 @@
 package com.osrsbot.autotrainer.scripts
 
 import android.accessibilityservice.AccessibilityService
-import android.accessibilityservice.GestureDescription
-import android.graphics.Path
 import com.osrsbot.autotrainer.antiban.AntiBanManager
 import com.osrsbot.autotrainer.banking.BankInteractor
 import com.osrsbot.autotrainer.detector.ObjectDetector
 import com.osrsbot.autotrainer.selector.TargetStore
 import com.osrsbot.autotrainer.utils.BotConfig
+import com.osrsbot.autotrainer.utils.GestureHelper
 import com.osrsbot.autotrainer.utils.Logger
 import com.osrsbot.autotrainer.walker.WalkerManager
 import kotlinx.coroutines.delay
@@ -100,13 +99,14 @@ class WoodcuttingScript(
                 setAction("Finding tree…")
 
                 // Prefer saved targets that aren't the bank
-                val treeTarget = TargetStore.getAll()
-                    .firstOrNull { !it.label.contains("bank", ignoreCase = true) }
+                val treeTarget = TargetStore.nextTargetWhere {
+                    !it.label.contains("bank", ignoreCase = true)
+                }
 
                 if (treeTarget != null) {
                     delay(antiBan.getClickDelay())
                     val (ox, oy) = antiBan.getClickOffset()
-                    tap(treeTarget.x + ox, treeTarget.y + oy)
+                    if (!tap(treeTarget.x + ox, treeTarget.y + oy)) return
                     Logger.action("Clicking '${treeTarget.label}' @ (${treeTarget.x.toInt()}, ${treeTarget.y.toInt()})")
                 } else {
                     val forceRefresh = treeGoneStreak >= 3
@@ -117,7 +117,7 @@ class WoodcuttingScript(
                     if (nearest != null) {
                         delay(antiBan.getClickDelay())
                         val (ox, oy) = antiBan.getClickOffset()
-                        tap(nearest.bounds.exactCenterX() + ox, nearest.bounds.exactCenterY() + oy)
+                        if (!tap(nearest.bounds.exactCenterX() + ox, nearest.bounds.exactCenterY() + oy)) return
                         Logger.action("Detected tree @ (${nearest.bounds.centerX()}, ${nearest.bounds.centerY()})")
                     } else {
                         setAction("No tree visible — tap 🎯 to save a target!")
@@ -204,13 +204,6 @@ class WoodcuttingScript(
     }
 
     // ── Tap helper ────────────────────────────────────────────────────────────
-    private fun tap(x: Float, y: Float) {
-        val safeX = x.coerceIn(1f, dm.widthPixels.toFloat()  - 1f)
-        val safeY = y.coerceIn(1f, dm.heightPixels.toFloat() - 1f)
-        val path   = Path().apply { moveTo(safeX, safeY) }
-        val stroke = GestureDescription.StrokeDescription(path, 0L, 80L)
-        service.dispatchGesture(
-            GestureDescription.Builder().addStroke(stroke).build(), null, null
-        )
-    }
+    private suspend fun tap(x: Float, y: Float): Boolean =
+        GestureHelper.tap(service, x, y, antiBan.getTapDurationMs())
 }

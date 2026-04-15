@@ -43,6 +43,9 @@ package com.osrsbot.autotrainer.antiban
           return (base * fatigue).toLong().coerceAtLeast(100L)
       }
 
+      fun getTapDurationMs(): Long =
+          if (config.humanLikeMouse) Random.nextLong(55L, 130L) else 70L
+
       /** Between-action pause — short UI interaction delay (400-900 ms). */
       fun getActionDelay(): Long {
           val base   = if (config.humanLikeMouse) Random.nextLong(400L, 900L) else 300L

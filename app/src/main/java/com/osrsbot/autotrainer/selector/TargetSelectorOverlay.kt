@@ -30,9 +30,9 @@ class TargetSelectorOverlay(
         PixelFormat.TRANSLUCENT
     )
 
-    fun show(label: String = "Target") {
+    fun show(label: String = "Target", scriptId: String = "") {
         if (overlayView != null) return
-        val view = SelectorView(context, label)
+        val view = SelectorView(context, label, scriptId)
         overlayView = view
 
         view.onFinish = { targets ->
@@ -52,7 +52,11 @@ class TargetSelectorOverlay(
         }
     }
 
-    inner class SelectorView(context: Context, private val defaultLabel: String) : View(context) {
+    inner class SelectorView(
+        context: Context,
+        private val defaultLabel: String,
+        private val scriptId: String,
+    ) : View(context) {
 
         var onFinish: ((List<GameTarget>) -> Unit)? = null
         var onCancel: (() -> Unit)? = null
@@ -116,10 +120,7 @@ class TargetSelectorOverlay(
             // Instruction bar at top
             canvas.drawRect(0f, 0f, w, 100f, Paint().apply { color = Color.parseColor("#CC000000") })
             val count = tappedTargets.size
-            canvas.drawText(
-                "Tap targets on screen  [$count saved]",
-                w / 2, 65f, instructionPaint
-            )
+            canvas.drawText(instructionText(count), w / 2, 65f, instructionPaint)
 
             // Draw each marked target
             tappedTargets.forEachIndexed { i, target ->
@@ -194,18 +195,57 @@ class TargetSelectorOverlay(
                     onCancel?.invoke()
                 }
                 y > 110f && y < height - 130f -> {
-                    // Tap on game area — add target
-                    val num = tappedTargets.size + 1
-                    val target = GameTarget(
-                        label = "$defaultLabel $num",
-                        x = x, y = y,
-                    )
-                    tappedTargets.add(target)
-                    invalidate()
-                    Toast.makeText(context, "Target $num saved at (${x.toInt()}, ${y.toInt()})", Toast.LENGTH_SHORT).show()
+                    val existingIndex = tappedTargets.indexOfFirst { target ->
+                        val dx = target.x - x
+                        val dy = target.y - y
+                        dx * dx + dy * dy <= target.radiusPx * target.radiusPx
+                    }
+                    if (existingIndex >= 0) {
+                        tappedTargets.removeAt(existingIndex)
+                        relabelTargets()
+                        invalidate()
+                        Toast.makeText(context, "Target removed.", Toast.LENGTH_SHORT).show()
+                    } else {
+                        val target = GameTarget(
+                            label = defaultLabel,
+                            x = x, y = y,
+                        )
+                        tappedTargets.add(target)
+                        relabelTargets()
+                        invalidate()
+                        Toast.makeText(context, "${tappedTargets.last().label} saved at (${x.toInt()}, ${y.toInt()})", Toast.LENGTH_SHORT).show()
+                    }
                 }
             }
             return true
+        }
+
+        private fun relabelTargets() {
+            for (i in tappedTargets.indices) {
+                val target = tappedTargets[i]
+                tappedTargets[i] = target.copy(label = labelFor(i, tappedTargets.size))
+            }
+        }
+
+        private fun labelFor(index: Int, total: Int): String = when (scriptId) {
+            "woodcutting" -> if (total > 1 && index == total - 1) "Bank" else "Tree ${index + 1}"
+            "fishing" -> if (total > 1 && index == total - 1) "Bank" else "Fishing Spot ${index + 1}"
+            "chocolate" -> when (index) {
+                0 -> "Knife"
+                1 -> "Chocolate Bar"
+                2 -> "Bank"
+                else -> "Item ${index + 1}"
+            }
+            "combat" -> "Monster ${index + 1}"
+            else -> "$defaultLabel ${index + 1}"
+        }
+
+        private fun instructionText(count: Int): String = when (scriptId) {
+            "woodcutting" -> if (count <= 1) "Tap tree(s), then tap bank last  [$count saved]" else "Last target is Bank  [$count saved]"
+            "fishing" -> if (count <= 1) "Tap fishing spot(s), bank last optional  [$count saved]" else "Last target is Bank  [$count saved]"
+            "chocolate" -> "Tap Knife, Chocolate Bar, optional Bank  [$count saved]"
+            "combat" -> "Tap monster target(s)  [$count saved]"
+            else -> "Tap targets on screen  [$count saved]"
         }
     }
 }

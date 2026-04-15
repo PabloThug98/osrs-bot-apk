@@ -241,12 +241,68 @@
                             style="@style/SectionLabel" />
                     </LinearLayout>
 
-                    <!-- Script list — 2 columns per row -->
+                    <!-- Script list — separated by purpose -->
                     <RadioGroup
                         android:id="@+id/rgScripts"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="MONEY MAKERS"
+                            android:textColor="@color/green"
+                            android:textSize="10sp"
+                            android:textStyle="bold"
+                            android:letterSpacing="0.12"
+                            android:layout_marginBottom="8dp" />
+
+                        <!-- Chocolate -->
+                        <LinearLayout
+                            android:id="@+id/cardChocolate"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical"
+                            android:background="@drawable/script_card_bg"
+                            android:padding="12dp"
+                            android:layout_marginBottom="14dp">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="🍫"
+                                android:textSize="26sp"
+                                android:layout_marginBottom="4dp" />
+
+                            <RadioButton
+                                android:id="@+id/rbChocolate"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Chocolate"
+                                android:textColor="@color/text_primary"
+                                android:textSize="12sp"
+                                android:textStyle="bold"
+                                android:buttonTint="@color/gold" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="~180K GP/hr"
+                                android:textColor="@color/green"
+                                android:textSize="10sp"
+                                android:paddingStart="24dp" />
+                        </LinearLayout>
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="SKILLING"
+                            android:textColor="@color/gold"
+                            android:textSize="10sp"
+                            android:textStyle="bold"
+                            android:letterSpacing="0.12"
+                            android:layout_marginBottom="8dp" />
 
                         <!-- Row 1 -->
                         <LinearLayout
@@ -255,8 +311,8 @@
                             android:orientation="horizontal"
                             android:layout_marginBottom="8dp">
 
-                            <!-- Chocolate -->
                             <LinearLayout
+                                android:id="@+id/cardWoodcutting"
                                 android:layout_width="0dp"
                                 android:layout_weight="1"
                                 android:layout_height="wrap_content"
@@ -264,43 +320,6 @@
                                 android:background="@drawable/script_card_bg"
                                 android:padding="12dp"
                                 android:layout_marginEnd="6dp">
-
-                                <TextView
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="🍫"
-                                    android:textSize="26sp"
-                                    android:layout_marginBottom="4dp" />
-
-                                <RadioButton
-                                    android:id="@+id/rbChocolate"
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="Chocolate"
-                                    android:textColor="@color/text_primary"
-                                    android:textSize="12sp"
-                                    android:textStyle="bold"
-                                    android:buttonTint="@color/gold"
-                                    android:checked="true" />
-
-                                <TextView
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="~180K GP/hr"
-                                    android:textColor="@color/green"
-                                    android:textSize="10sp"
-                                    android:paddingStart="24dp" />
-                            </LinearLayout>
-
-                            <!-- Woodcutting -->
-                            <LinearLayout
-                                android:layout_width="0dp"
-                                android:layout_weight="1"
-                                android:layout_height="wrap_content"
-                                android:orientation="vertical"
-                                android:background="@drawable/script_card_bg"
-                                android:padding="12dp"
-                                android:layout_marginStart="6dp">
 
                                 <TextView
                                     android:layout_width="wrap_content"
@@ -327,23 +346,16 @@
                                     android:textSize="10sp"
                                     android:paddingStart="24dp" />
                             </LinearLayout>
-                        </LinearLayout>
 
-                        <!-- Row 2 -->
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:orientation="horizontal">
-
-                            <!-- Fishing -->
                             <LinearLayout
+                                android:id="@+id/cardFishing"
                                 android:layout_width="0dp"
                                 android:layout_weight="1"
                                 android:layout_height="wrap_content"
                                 android:orientation="vertical"
                                 android:background="@drawable/script_card_bg"
                                 android:padding="12dp"
-                                android:layout_marginEnd="6dp">
+                                android:layout_marginStart="6dp">
 
                                 <TextView
                                     android:layout_width="wrap_content"
@@ -370,42 +382,41 @@
                                     android:textSize="10sp"
                                     android:paddingStart="24dp" />
                             </LinearLayout>
+                        </LinearLayout>
 
-                            <!-- Combat -->
-                            <LinearLayout
-                                android:layout_width="0dp"
-                                android:layout_weight="1"
+                        <!-- Combat -->
+                        <LinearLayout
+                            android:id="@+id/cardCombat"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical"
+                            android:background="@drawable/script_card_bg"
+                            android:padding="12dp">
+
+                            <TextView
+                                android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:orientation="vertical"
-                                android:background="@drawable/script_card_bg"
-                                android:padding="12dp"
-                                android:layout_marginStart="6dp">
+                                android:text="⚔️"
+                                android:textSize="26sp"
+                                android:layout_marginBottom="4dp" />
 
-                                <TextView
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="⚔️"
-                                    android:textSize="26sp"
-                                    android:layout_marginBottom="4dp" />
+                            <RadioButton
+                                android:id="@+id/rbCombat"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Combat"
+                                android:textColor="@color/text_primary"
+                                android:textSize="12sp"
+                                android:textStyle="bold"
+                                android:buttonTint="@color/gold" />
 
-                                <RadioButton
-                                    android:id="@+id/rbCombat"
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="Combat"
-                                    android:textColor="@color/text_primary"
-                                    android:textSize="12sp"
-                                    android:textStyle="bold"
-                                    android:buttonTint="@color/gold" />
-
-                                <TextView
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="XP + Loot"
-                                    android:textColor="@color/red"
-                                    android:textSize="10sp"
-                                    android:paddingStart="24dp" />
-                            </LinearLayout>
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="XP + Loot"
+                                android:textColor="@color/red"
+                                android:textSize="10sp"
+                                android:paddingStart="24dp" />
                         </LinearLayout>
 
                     </RadioGroup>

@@ -1,8 +1,7 @@
 package com.osrsbot.autotrainer.walker
 
 import android.accessibilityservice.AccessibilityService
-import android.accessibilityservice.GestureDescription
-import android.graphics.Path
+import com.osrsbot.autotrainer.utils.GestureHelper
 import com.osrsbot.autotrainer.utils.Logger
 import kotlinx.coroutines.delay
 import kotlin.math.cos
@@ -212,7 +211,7 @@ class WalkerManager(private val service: AccessibilityService) {
      * Tap the minimap at the given compass angle from its centre.
      * angle 0° = east, 90° = north, -90° = south, 180°/-180° = west
      */
-    fun tapMinimap(angleDeg: Float) {
+    suspend fun tapMinimap(angleDeg: Float) {
         val w  = dm.widthPixels.toFloat()
         val h  = dm.heightPixels.toFloat()
         val cx = w * mmCxF
@@ -225,17 +224,13 @@ class WalkerManager(private val service: AccessibilityService) {
         val tx  = (cx + r * cos(rad) + jx).toFloat().coerceIn(0f, w)
         val ty  = (cy - r * sin(rad) + jy).toFloat().coerceIn(0f, h)
 
-        tap(tx, ty)
-        Logger.action("Walker: tap minimap angle=${angleDeg.toInt()}° → (${tx.toInt()}, ${ty.toInt()})")
+        if (tap(tx, ty)) {
+            Logger.action("Walker: tap minimap angle=${angleDeg.toInt()}° → (${tx.toInt()}, ${ty.toInt()})")
+        }
     }
 
-    private fun tap(x: Float, y: Float) {
-        val path   = Path().apply { moveTo(x, y) }
-        val stroke = GestureDescription.StrokeDescription(path, 0, 60)
-        service.dispatchGesture(
-            GestureDescription.Builder().addStroke(stroke).build(), null, null
-        )
-    }
+    private suspend fun tap(x: Float, y: Float): Boolean =
+        GestureHelper.tap(service, x, y, Random.nextLong(55L, 110L))
 
     // Aliases for convenience inside this file
     private val LUMBRIDGE_BANK            = Location.LUMBRIDGE_BANK

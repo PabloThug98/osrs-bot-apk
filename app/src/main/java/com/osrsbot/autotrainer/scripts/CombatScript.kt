@@ -1,12 +1,11 @@
 package com.osrsbot.autotrainer.scripts
 
   import android.accessibilityservice.AccessibilityService
-  import android.accessibilityservice.GestureDescription
-  import android.graphics.Path
   import com.osrsbot.autotrainer.antiban.AntiBanManager
   import com.osrsbot.autotrainer.detector.ObjectDetector
   import com.osrsbot.autotrainer.selector.TargetStore
   import com.osrsbot.autotrainer.utils.BotConfig
+  import com.osrsbot.autotrainer.utils.GestureHelper
   import com.osrsbot.autotrainer.utils.Logger
   import kotlinx.coroutines.delay
   import kotlin.random.Random
@@ -54,12 +53,14 @@ package com.osrsbot.autotrainer.scripts
                   if (hp <= EAT_HP_THRESHOLD) { state = State.EATING; return }
 
                   setAction("Looking for monster…")
-                  val userTarget = TargetStore.nextTarget()
+                  val userTarget = TargetStore.nextTargetWhere {
+                      !it.label.contains("bank", ignoreCase = true)
+                  }
 
                   if (userTarget != null) {
                       delay(antiBan.getClickDelay())
                       val (ox, oy) = antiBan.getClickOffset()
-                      tap(userTarget.x + ox.toFloat(), userTarget.y + oy.toFloat())
+                      if (!tap(userTarget.x + ox.toFloat(), userTarget.y + oy.toFloat())) return
                       Logger.action("Attacking saved target: " + userTarget.label)
                       state = State.IN_COMBAT
                       missStreak = 0
@@ -79,7 +80,7 @@ package com.osrsbot.autotrainer.scripts
                   if (monster != null) {
                       delay(antiBan.getClickDelay())
                       val (ox, oy) = antiBan.getClickOffset()
-                      tap(monster.bounds.exactCenterX() + ox, monster.bounds.exactCenterY() + oy)
+                      if (!tap(monster.bounds.exactCenterX() + ox, monster.bounds.exactCenterY() + oy)) return
                       Logger.action("Attacking: " + monster.name + " conf=" + "%.2f".format(monster.confidence))
                       state = State.IN_COMBAT
                       missStreak = 0
@@ -104,10 +105,10 @@ package com.osrsbot.autotrainer.scripts
                   val userTarget = TargetStore.peekCurrent()
                   if (userTarget != null) {
                       val (ox, oy) = antiBan.getClickOffset()
-                      tap(
+                      if (!tap(
                           userTarget.x + ox + Random.nextInt(-15, 15),
                           userTarget.y + oy + Random.nextInt(20, 40).toFloat()
-                      )
+                      )) return
                   }
                   delay(antiBan.getActionDelay() * 2)
                   detector.invalidateCache()
@@ -117,10 +118,10 @@ package com.osrsbot.autotrainer.scripts
               State.EATING -> {
                   setAction("Low HP — eating food…")
                   val dm = service.resources.displayMetrics
-                  tap(
+                  if (!tap(
                       dm.widthPixels * 0.82f + Random.nextInt(-10, 10),
                       dm.heightPixels * 0.80f + Random.nextInt(-10, 10)
-                  )
+                  )) return
                   delay(1_500L + Random.nextLong(0, 300))
                   hp = (hp + Random.nextInt(8, 22)).coerceAtMost(99)
                   Logger.ok("Ate food — HP ~" + hp)
@@ -130,10 +131,7 @@ package com.osrsbot.autotrainer.scripts
           }
       }
 
-      private fun tap(x: Float, y: Float) {
-          val path = Path().apply { moveTo(x.coerceAtLeast(1f), y.coerceAtLeast(1f)) }
-          val stroke = GestureDescription.StrokeDescription(path, 0, 80)
-          service.dispatchGesture(GestureDescription.Builder().addStroke(stroke).build(), null, null)
-      }
+      private suspend fun tap(x: Float, y: Float): Boolean =
+          GestureHelper.tap(service, x, y, antiBan.getTapDurationMs())
   }
   

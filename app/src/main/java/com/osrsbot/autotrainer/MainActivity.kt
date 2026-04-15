@@ -17,10 +17,10 @@ package com.osrsbot.autotrainer
   import android.widget.RadioGroup
   import android.widget.SeekBar
   import android.widget.Spinner
-  import android.widget.Switch
   import android.widget.TextView
   import android.widget.Toast
   import androidx.appcompat.app.AppCompatActivity
+import com.google.android.material.switchmaterial.SwitchMaterial
   import com.osrsbot.autotrainer.utils.BotConfig
   import com.osrsbot.autotrainer.utils.Logger
 
@@ -29,6 +29,13 @@ package com.osrsbot.autotrainer
       private var botService: BotService? = null
       private var serviceBound = false
       private var selectedWalkerArea = "none"
+    private var selectedScriptId: String? = null
+
+    private data class ScriptOption(
+        val radioId: Int,
+        val cardId: Int,
+        val scriptId: String,
+    )
 
       private val walkerAreas = listOf(
           "None (stay put - use TARGET to mark trees)" to "none",
@@ -117,19 +124,42 @@ package com.osrsbot.autotrainer
       }
 
       private fun setupScriptToggles() {
-          val rg = findViewById<RadioGroup>(R.id.rgScripts)
-          val ids = listOf(R.id.rbChocolate, R.id.rbWoodcutting, R.id.rbFishing, R.id.rbCombat)
-          for (id in ids) {
-              val rb = findViewById<RadioButton>(id)
-              rb.setOnTouchListener { _, event ->
-                  if (event.action == MotionEvent.ACTION_DOWN && rb.isChecked) {
-                      rg.clearCheck()
-                      true
-                  } else {
-                      false
-                  }
-              }
+        val options = listOf(
+            ScriptOption(R.id.rbChocolate, R.id.cardChocolate, "chocolate"),
+            ScriptOption(R.id.rbWoodcutting, R.id.cardWoodcutting, "woodcutting"),
+            ScriptOption(R.id.rbFishing, R.id.cardFishing, "fishing"),
+            ScriptOption(R.id.rbCombat, R.id.cardCombat, "combat"),
+        )
+
+        for (option in options) {
+            val rb = findViewById<RadioButton>(option.radioId)
+            val card = findViewById<View>(option.cardId)
+            val click = View.OnClickListener {
+                setScriptSelection(if (selectedScriptId == option.scriptId) null else option.scriptId, options)
+            }
+            rb.setOnTouchListener { _, event ->
+                if (event.action == MotionEvent.ACTION_UP) {
+                    setScriptSelection(if (selectedScriptId == option.scriptId) null else option.scriptId, options)
+                    true
+                } else {
+                    true
+                }
+            }
+            card.setOnClickListener(click)
           }
+        setScriptSelection(null, options)
+    }
+
+    private fun setScriptSelection(scriptId: String?, options: List<ScriptOption>) {
+        selectedScriptId = scriptId
+        findViewById<RadioGroup>(R.id.rgScripts).clearCheck()
+        for (option in options) {
+            val checked = option.scriptId == scriptId
+            findViewById<RadioButton>(option.radioId).isChecked = checked
+            findViewById<View>(option.cardId).setBackgroundResource(
+                if (checked) R.drawable.script_card_selected_bg else R.drawable.script_card_bg
+            )
+        }
       }
 
       private fun setupWalkerSpinner() {
@@ -160,24 +190,18 @@ package com.osrsbot.autotrainer
       }
 
       private fun applyConfig(): Boolean {
-          val scriptId = when (findViewById<RadioGroup>(R.id.rgScripts).checkedRadioButtonId) {
-              R.id.rbWoodcutting -> "woodcutting"
-              R.id.rbFishing     -> "fishing"
-              R.id.rbCombat      -> "combat"
-              R.id.rbChocolate   -> "chocolate"
-              else -> {
-                  Toast.makeText(this, "Please select a script first!", Toast.LENGTH_LONG).show()
-                  return false
-              }
+        val scriptId = selectedScriptId ?: run {
+            Toast.makeText(this, "Please select a script first.", Toast.LENGTH_LONG).show()
+            return false
           }
           val config = BotConfig(
               scriptId             = scriptId,
-              antiBanBreaks        = findViewById<Switch>(R.id.switchBreaks).isChecked,
-              stopOnPlayerNearby   = findViewById<Switch>(R.id.switchStopPlayer).isChecked,
-              humanLikeMouse       = findViewById<Switch>(R.id.switchHuman).isChecked,
-              stopAfterTime        = findViewById<Switch>(R.id.switchStopTime).isChecked,
+            antiBanBreaks        = findViewById<SwitchMaterial>(R.id.switchBreaks).isChecked,
+            stopOnPlayerNearby   = findViewById<SwitchMaterial>(R.id.switchStopPlayer).isChecked,
+            humanLikeMouse       = findViewById<SwitchMaterial>(R.id.switchHuman).isChecked,
+            stopAfterTime        = findViewById<SwitchMaterial>(R.id.switchStopTime).isChecked,
               stopAfterMinutes     = findViewById<SeekBar>(R.id.seekStopTime).progress.coerceAtLeast(10),
-              stopAfterActions     = findViewById<Switch>(R.id.switchStopActions).isChecked,
+            stopAfterActions     = findViewById<SwitchMaterial>(R.id.switchStopActions).isChecked,
               stopAfterActionCount = findViewById<SeekBar>(R.id.seekStopActions).progress.coerceAtLeast(50),
               walkerArea           = selectedWalkerArea,
           )

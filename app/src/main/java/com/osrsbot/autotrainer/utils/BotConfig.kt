@@ -51,7 +51,6 @@ package com.osrsbot.autotrainer.utils
           "woodcutting" to Triple("Woodcutting Bot",     38,   50),
           "fishing"     to Triple("Fishing Bot",          40,   40),
           "combat"      to Triple("Combat Trainer",       60,   20),
-          "mining"      to Triple("Mining Bot",           35,   60),
       )
       fun name(id: String)  = scripts[id]?.first ?: "Unknown"
       fun xpPer(id: String) = scripts[id]?.second ?: 0
