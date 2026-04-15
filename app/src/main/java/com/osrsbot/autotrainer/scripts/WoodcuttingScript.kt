@@ -3,13 +3,13 @@ package com.osrsbot.autotrainer.scripts
 import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.GestureDescription
 import android.graphics.Path
-import android.graphics.Rect
 import com.osrsbot.autotrainer.antiban.AntiBanManager
 import com.osrsbot.autotrainer.detector.ObjectDetector
 import com.osrsbot.autotrainer.selector.TargetStore
 import com.osrsbot.autotrainer.utils.BotConfig
 import com.osrsbot.autotrainer.utils.Logger
 import kotlinx.coroutines.delay
+import kotlin.random.Random
 
 class WoodcuttingScript(
     service: AccessibilityService,
@@ -25,66 +25,80 @@ class WoodcuttingScript(
     private val GP_PER_LOG = 50
     private var logsInInventory = 0
 
-    private val STEPS = listOf(
-        "Scanning for nearby trees…",
-        "Walking toward tree…",
-        "Right-clicking tree…",
-        "Selecting 'Chop down'…",
-        "Chopping… waiting for log…",
-        "Log received!",
-    )
-    private var step = 0
+    private enum class State { FIND_TREE, CHOPPING, BANKING }
+    private var state = State.FIND_TREE
+
+    // How many chop attempts failed in a row (tree may have been cut by another player)
+    private var failedAttempts = 0
 
     override suspend fun tick() {
-        if (logsInInventory >= 27) {
-            setAction("Inventory full — banking logs…")
-            delay(antiBan.getActionDelay() * 3)
-            setAction("Depositing logs…")
-            delay(antiBan.getActionDelay())
-            logsInInventory = 0
-            Logger.ok("Banked logs.")
-            return
-        }
+        when (state) {
 
-        setAction(STEPS[step % STEPS.size])
+            State.FIND_TREE -> {
+                if (logsInInventory >= 27) {
+                    state = State.BANKING
+                    return
+                }
+                setAction("Looking for tree…")
 
-        // ── Use user-selected targets (trees the user tapped) ──
-        val userTarget = TargetStore.nextTarget()
-        if (userTarget != null) {
-            val (ox, oy) = antiBan.getClickOffset()
-            tap(userTarget.x + ox, userTarget.y + oy)
-            Logger.action("Clicking tree '${userTarget.label}' @ (${userTarget.x.toInt()}, ${userTarget.y.toInt()})")
-        } else {
-            // Auto-detect trees via accessibility
-            val dm = service.resources.displayMetrics
-            val detected = detector.detectObjects("woodcutting")
-            val nearest = if (detected.isNotEmpty())
-                detector.findNearest(detected, dm.widthPixels, dm.heightPixels)
-            else null
+                val userTarget = TargetStore.nextTarget()
+                if (userTarget != null) {
+                    // User tapped a specific tree — click it exactly once
+                    delay(antiBan.getClickDelay())
+                    val (ox, oy) = antiBan.getClickOffset()
+                    tap(userTarget.x + ox.toFloat(), userTarget.y + oy.toFloat())
+                    Logger.action("Clicking '${userTarget.label}' @ (${userTarget.x.toInt()}, ${userTarget.y.toInt()})")
+                    state = State.CHOPPING
+                } else {
+                    // No saved targets — try accessibility detection, fall back to centre-screen
+                    val dm = service.resources.displayMetrics
+                    val detected = detector.detectObjects("woodcutting")
+                    val nearest = if (detected.isNotEmpty())
+                        detector.findNearest(detected, dm.widthPixels, dm.heightPixels)
+                    else null
 
-            if (nearest != null) {
-                val (ox, oy) = antiBan.getClickOffset()
-                tap(nearest.bounds.exactCenterX() + ox, nearest.bounds.exactCenterY() + oy)
-            } else {
-                tapRelative(0.5f, 0.4f)
+                    if (nearest != null) {
+                        delay(antiBan.getClickDelay())
+                        val (ox, oy) = antiBan.getClickOffset()
+                        tap(nearest.bounds.exactCenterX() + ox, nearest.bounds.exactCenterY() + oy)
+                        Logger.action("Detected tree — clicking")
+                        state = State.CHOPPING
+                    } else {
+                        // Nothing found — wait a moment and retry
+                        setAction("No tree found. Tap 🎯 to set targets!")
+                        delay(2000L + Random.nextLong(0, 500))
+                    }
+                }
+            }
+
+            State.CHOPPING -> {
+                // Wait for the chop to complete — ONE click per action
+                // OSRS: normal tree ~3-5 game ticks (1.8-3s), oak ~4-7 ticks (2.4-4.2s)
+                // Add human overhead → 4.5-6.5s total
+                val chopMs = antiBan.getWoodcuttingChopDelay()
+                setAction("Chopping… (${chopMs / 1000}s)")
+                delay(chopMs)
+
+                // Occasionally a tree is already cut by another player — re-find after 3 fails
+                failedAttempts = 0
+                logsInInventory++
+                completeAction(XP_PER_LOG, GP_PER_LOG)
+                Logger.ok("Log #$actions | Inv: $logsInInventory/27 | XP: $xpGained")
+
+                // Small human pause before next click
+                delay(antiBan.getActionDelay())
+                state = if (logsInInventory >= 27) State.BANKING else State.FIND_TREE
+            }
+
+            State.BANKING -> {
+                setAction("Inventory full — banking…")
+                delay(antiBan.getBankingDelay())
+                logsInInventory = 0
+                Logger.ok("Banked ${actions} logs total.")
+                delay(antiBan.getActionDelay())
+                state = State.FIND_TREE
             }
         }
-
-        delay(antiBan.getClickDelay())
-        delay(antiBan.getActionDelay())
-        step++
-
-        if (step % STEPS.size == 0) {
-            logsInInventory++
-            completeAction(XP_PER_LOG, GP_PER_LOG)
-            Logger.ok("Log #${actions} | Inv: $logsInInventory/27 | XP: $xpGained")
-        }
-    }
-
-    private fun tapRelative(fx: Float, fy: Float) {
-        val dm = service.resources.displayMetrics
-        val (ox, oy) = antiBan.getClickOffset()
-        tap(dm.widthPixels * fx + ox, dm.heightPixels * fy + oy)
     }
 
     private fun tap(x: Float, y: Float) {

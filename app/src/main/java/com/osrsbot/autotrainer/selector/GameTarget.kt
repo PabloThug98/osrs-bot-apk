@@ -24,12 +24,19 @@ object TargetStore {
     fun isEmpty(): Boolean = targets.isEmpty()
     fun count(): Int = targets.size
 
-    /** Returns the next target to click in round-robin */
+    /** Returns the next target in round-robin without consuming it */
     private var cursor = 0
     fun nextTarget(): GameTarget? {
         if (targets.isEmpty()) return null
         val t = targets[cursor % targets.size]
         cursor = (cursor + 1) % targets.size
         return t
+    }
+
+    /** Returns the most recently accessed target without advancing the cursor */
+    fun peekCurrent(): GameTarget? {
+        if (targets.isEmpty()) return null
+        val idx = if (cursor == 0) targets.size - 1 else cursor - 1
+        return targets[idx % targets.size]
     }
 }

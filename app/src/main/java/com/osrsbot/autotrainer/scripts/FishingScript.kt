@@ -5,9 +5,11 @@ import android.accessibilityservice.GestureDescription
 import android.graphics.Path
 import com.osrsbot.autotrainer.antiban.AntiBanManager
 import com.osrsbot.autotrainer.detector.ObjectDetector
+import com.osrsbot.autotrainer.selector.TargetStore
 import com.osrsbot.autotrainer.utils.BotConfig
 import com.osrsbot.autotrainer.utils.Logger
 import kotlinx.coroutines.delay
+import kotlin.random.Random
 
 class FishingScript(
     service: AccessibilityService,
@@ -16,52 +18,76 @@ class FishingScript(
     detector: ObjectDetector,
 ) : BotScript(service, config, antiBan, detector) {
 
-    override val id = "fishing"
+    override val id   = "fishing"
     override val name = "🎣 Fishing Bot"
 
     private val XP_PER_FISH = 40
     private val GP_PER_FISH = 40
     private var fishInInventory = 0
 
-    private val STEPS = listOf(
-        "Scanning for fishing spot…",
-        "Walking to nearest spot…",
-        "Clicking fishing spot…",
-        "Waiting for a bite…",
-        "Fish caught! Inventory updated.",
-        "Re-clicking spot…",
-    )
-    private var step = 0
+    private enum class State { FIND_SPOT, FISHING, BANKING }
+    private var state = State.FIND_SPOT
 
     override suspend fun tick() {
-        if (fishInInventory >= 27) {
-            setAction("Inventory full — banking fish…")
-            delay(antiBan.getActionDelay() * 2)
-            fishInInventory = 0
-            Logger.ok("Fish banked. Resuming.")
-            return
-        }
+        when (state) {
 
-        setAction(STEPS[step % STEPS.size])
-        val detected = detector.detectObjects("fishing")
-        val spot = detected.firstOrNull { it.name.lowercase().contains("fishing") }
+            State.FIND_SPOT -> {
+                if (fishInInventory >= 27) {
+                    state = State.BANKING
+                    return
+                }
+                setAction("Looking for fishing spot…")
 
-        if (spot != null) {
-            val (ox, oy) = antiBan.getClickOffset()
-            tap(spot.bounds.exactCenterX() + ox, spot.bounds.exactCenterY() + oy)
-        } else {
-            val dm = service.resources.displayMetrics
-            tap(dm.widthPixels * 0.5f, dm.heightPixels * 0.45f)
-        }
+                val userTarget = TargetStore.nextTarget()
+                if (userTarget != null) {
+                    delay(antiBan.getClickDelay())
+                    val (ox, oy) = antiBan.getClickOffset()
+                    tap(userTarget.x + ox.toFloat(), userTarget.y + oy.toFloat())
+                    Logger.action("Clicking spot '${userTarget.label}'")
+                    state = State.FISHING
+                } else {
+                    val dm = service.resources.displayMetrics
+                    val detected = detector.detectObjects("fishing")
+                    val spot = detected.firstOrNull()
 
-        delay(antiBan.getClickDelay())
-        delay(antiBan.getActionDelay())
-        step++
+                    if (spot != null) {
+                        delay(antiBan.getClickDelay())
+                        val (ox, oy) = antiBan.getClickOffset()
+                        tap(spot.bounds.exactCenterX() + ox, spot.bounds.exactCenterY() + oy)
+                        Logger.action("Detected fishing spot — clicking")
+                        state = State.FISHING
+                    } else {
+                        setAction("No spot found. Tap 🎯 to set spot!")
+                        delay(2000L + Random.nextLong(0, 500))
+                    }
+                }
+            }
 
-        if (step % STEPS.size == 0) {
-            fishInInventory++
-            completeAction(XP_PER_FISH, GP_PER_FISH)
-            Logger.ok("Fish caught. Inventory: $fishInInventory/27 | XP: $xpGained")
+            State.FISHING -> {
+                // OSRS fishing: 1 catch every 6-10 seconds depending on level & spot
+                val waitMs = antiBan.getFishingWaitDelay()
+                setAction("Fishing… (${waitMs / 1000}s)")
+                delay(waitMs)
+
+                // Fishing spots move every ~60-90 seconds — the script re-clicks the saved coord
+                // which is usually close enough. User can set multiple spots for redundancy.
+                fishInInventory++
+                completeAction(XP_PER_FISH, GP_PER_FISH)
+                Logger.ok("Fish #$actions | Inv: $fishInInventory/27 | XP: $xpGained")
+
+                delay(antiBan.getActionDelay())
+                // Re-click the spot after each catch (spot may drift slightly)
+                state = if (fishInInventory >= 27) State.BANKING else State.FIND_SPOT
+            }
+
+            State.BANKING -> {
+                setAction("Inventory full — banking fish…")
+                delay(antiBan.getBankingDelay())
+                fishInInventory = 0
+                Logger.ok("Banked ${actions} fish total.")
+                delay(antiBan.getActionDelay())
+                state = State.FIND_SPOT
+            }
         }
     }
 

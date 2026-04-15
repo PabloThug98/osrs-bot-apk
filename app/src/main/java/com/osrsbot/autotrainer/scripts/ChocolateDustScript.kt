@@ -3,14 +3,25 @@ package com.osrsbot.autotrainer.scripts
 import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.GestureDescription
 import android.graphics.Path
-import android.graphics.Rect
 import com.osrsbot.autotrainer.antiban.AntiBanManager
 import com.osrsbot.autotrainer.detector.ObjectDetector
 import com.osrsbot.autotrainer.selector.TargetStore
 import com.osrsbot.autotrainer.utils.BotConfig
 import com.osrsbot.autotrainer.utils.Logger
 import kotlinx.coroutines.delay
+import kotlin.random.Random
 
+/**
+ * Chocolate Dust Maker — ~180K GP/hr
+ *
+ * Workflow per trip:
+ *   1. SETUP  — tap knife, tap chocolate bar, confirm Make-All dialog (~3 clicks)
+ *   2. GRINDING — wait ~50s for all 27 bars to be ground automatically
+ *   3. BANKING — bank dust, withdraw 27 bars (~12s walk + deposit)
+ *
+ * User should tap 🎯 to mark: [0] Knife slot, [1] Chocolate Bar slot
+ * in their inventory so the bot knows exactly where to click.
+ */
 class ChocolateDustScript(
     service: AccessibilityService,
     config: BotConfig,
@@ -24,65 +35,108 @@ class ChocolateDustScript(
     private var barsInInventory = 27
     private val GP_PER_BAR = 180
 
-    private val STEPS = listOf(
-        "Opening inventory…",
-        "Selecting Knife…",
-        "Tapping Use on Knife…",
-        "Tapping Chocolate Bar…",
-        "Make-X dialog — confirming All…",
-        "Grinding… waiting for animation…",
-        "Collecting Chocolate Dust…",
-    )
-    private var step = 0
+    // Each grind trip processes all 27 bars in one Make-All session
+    private val GRIND_TIME_MS = 27L * 1800L  // ~48.6 seconds (1.8s per bar)
+
+    private enum class State { SETUP_USE_KNIFE, SETUP_USE_BAR, CONFIRM_DIALOG, GRINDING, BANKING }
+    private var state = State.SETUP_USE_KNIFE
+
+    // Inventory positions (fallback when no targets saved)
+    // OSRS mobile: knife is typically in slot 0 (top-left), bars fill rest
+    private val dm get() = service.resources.displayMetrics
 
     override suspend fun tick() {
-        if (barsInInventory <= 0) {
-            setAction("No bars left — walking to bank…")
-            delay(antiBan.getActionDelay() * 3)
-            setAction("Banking dust, withdrawing bars…")
-            delay(antiBan.getActionDelay())
-            barsInInventory = 27
-            Logger.ok("Banked. New trip.")
-            return
-        }
+        when (state) {
 
-        setAction(STEPS[step % STEPS.size])
+            State.SETUP_USE_KNIFE -> {
+                if (barsInInventory <= 0) {
+                    state = State.BANKING
+                    return
+                }
+                setAction("Use knife on chocolate bar…")
+                delay(antiBan.getClickDelay())
 
-        // ── Use user-selected targets if available, else auto-detect ──
-        val userTarget = TargetStore.nextTarget()
-        if (userTarget != null) {
-            val (ox, oy) = antiBan.getClickOffset()
-            tap(userTarget.x + ox, userTarget.y + oy)
-            Logger.action("Clicking user target '${userTarget.label}' @ (${userTarget.x.toInt()}, ${userTarget.y.toInt()})")
-        } else {
-            // Fall back to accessibility detection
-            val detected = detector.detectObjects("chocolate")
-            val target = detected.firstOrNull {
-                it.name.lowercase().contains("chocolate") || it.name.lowercase().contains("knife")
+                // Target 0 = knife, Target 1 = chocolate bar (user should set these)
+                val targets = TargetStore.getAll()
+                val knifeTarget = targets.getOrNull(0)
+
+                if (knifeTarget != null) {
+                    val (ox, oy) = antiBan.getClickOffset()
+                    tap(knifeTarget.x + ox.toFloat(), knifeTarget.y + oy.toFloat())
+                    Logger.action("Tapping knife slot")
+                } else {
+                    // Fallback: knife is usually top-left of inventory
+                    tapRelative(0.30f, 0.62f)
+                    Logger.action("Tapping knife (fallback position)")
+                }
+
+                delay(antiBan.getActionDelay())
+                state = State.SETUP_USE_BAR
             }
-            if (target != null) {
-                val (ox, oy) = antiBan.getClickOffset()
-                tap(target.bounds.exactCenterX() + ox, target.bounds.exactCenterY() + oy)
-            } else {
-                tapRelative(0.5f, 0.62f)
+
+            State.SETUP_USE_BAR -> {
+                setAction("Tapping chocolate bar…")
+                delay(antiBan.getClickDelay())
+
+                val targets = TargetStore.getAll()
+                val barTarget = targets.getOrNull(1) ?: targets.getOrNull(0)
+
+                if (barTarget != null) {
+                    val (ox, oy) = antiBan.getClickOffset()
+                    // If only one target set, offset slightly to hit bar slot next to knife
+                    val offsetX = if (targets.size < 2) 80f else 0f
+                    tap(barTarget.x + ox.toFloat() + offsetX, barTarget.y + oy.toFloat())
+                    Logger.action("Tapping bar slot")
+                } else {
+                    // Fallback: bar is usually slot next to knife
+                    tapRelative(0.46f, 0.62f)
+                    Logger.action("Tapping bar (fallback position)")
+                }
+
+                delay(antiBan.getActionDelay())
+                state = State.CONFIRM_DIALOG
             }
-        }
 
-        delay(antiBan.getClickDelay())
-        delay(antiBan.getActionDelay())
-        step++
+            State.CONFIRM_DIALOG -> {
+                setAction("Confirming Make-All…")
+                // Make-X dialog appears — tap "Make All" button (bottom-centre of dialog)
+                delay(antiBan.getClickDelay())
+                tapRelative(0.5f, 0.88f)   // Make-All button is near bottom of screen
+                Logger.action("Tapping Make-All in dialog")
 
-        if (step % STEPS.size == 0) {
-            barsInInventory--
-            completeAction(0, GP_PER_BAR)
-            Logger.ok("Bar #${actions} ground → Dust | GP: $gpGained")
+                delay(antiBan.getActionDelay())
+                state = State.GRINDING
+            }
+
+            State.GRINDING -> {
+                // All 27 bars grind automatically — just wait for the full animation
+                val waitMs = GRIND_TIME_MS + Random.nextLong(-1000L, 2000L)
+                setAction("Grinding all 27 bars… (${waitMs / 1000}s)")
+                delay(waitMs)
+
+                val bars = barsInInventory
+                repeat(bars) { completeAction(0, GP_PER_BAR) }
+                Logger.ok("Trip done: $bars bars → dust | GP this trip: ${bars * GP_PER_BAR}")
+                barsInInventory = 0
+
+                delay(antiBan.getActionDelay())
+                state = State.BANKING
+            }
+
+            State.BANKING -> {
+                setAction("Banking dust & restocking bars…")
+                delay(antiBan.getBankingDelay())
+                barsInInventory = 27
+                Logger.ok("Restocked. Total GP: $gpGained")
+                delay(antiBan.getActionDelay())
+                state = State.SETUP_USE_KNIFE
+            }
         }
     }
 
     private fun tapRelative(fx: Float, fy: Float) {
-        val dm = service.resources.displayMetrics
         val (ox, oy) = antiBan.getClickOffset()
-        tap(dm.widthPixels * fx + ox, dm.heightPixels * fy + oy)
+        tap(dm.widthPixels * fx + ox.toFloat(), dm.heightPixels * fy + oy.toFloat())
     }
 
     private fun tap(x: Float, y: Float) {
