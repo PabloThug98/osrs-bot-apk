@@ -27,12 +27,12 @@ class BotService : LifecycleService() {
         fun getService(): BotService = this@BotService
     }
 
-    private val binder = LocalBinder()
+    private val binder    = LocalBinder()
     private var overlay: OverlayManager? = null
     private var botJob: Job? = null
-    private var config = BotConfig()
+    private var config    = BotConfig()
     private var startTimeMs = 0L
-    private var onBreak = false
+    private var onBreak   = false
 
     var isRunning = false
         private set
@@ -52,18 +52,15 @@ class BotService : LifecycleService() {
         Logger.ok("BotService created.")
     }
 
-    fun updateConfig(newConfig: BotConfig) {
-        config = newConfig
-    }
+    fun updateConfig(newConfig: BotConfig) { config = newConfig }
 
     fun showOverlay() {
         overlay?.show(onStart = { startBot() }, onStop = { stopBot() })
     }
 
-    fun hideOverlay() {
-        overlay?.hide()
-    }
+    fun hideOverlay() { overlay?.hide() }
 
+    // ── Start bot ─────────────────────────────────────────────────────────────
     fun startBot() {
         if (isRunning) return
         val accessService = OSRSAccessibilityService.instance
@@ -72,8 +69,8 @@ class BotService : LifecycleService() {
             statusListener?.invoke("Accessibility service not enabled", false)
             return
         }
-        isRunning = true
-        onBreak = false
+        isRunning   = true
+        onBreak     = false
         startTimeMs = System.currentTimeMillis()
         Logger.ok("Bot starting: ${ScriptInfo.name(config.scriptId)}")
         statusListener?.invoke("Running", true)
@@ -84,11 +81,10 @@ class BotService : LifecycleService() {
         val script: BotScript = when (config.scriptId) {
             "woodcutting" -> {
                 val wc = WoodcuttingScript(accessService, config, antiBan, detector)
-                // Apply walker locations from the configured area
-                val (treeL, bankL) = walkerLocationsFor(config.walkerArea, "woodcutting")
+                val (treeL, bankL) = walkerLocationsFor(config.walkerArea)
                 wc.treeLocation = treeL
                 wc.bankLocation = bankL
-                if (treeL != null) Logger.ok("Walker: $bankL → $treeL")
+                if (treeL != null) Logger.ok("Walker: ${bankL} → ${treeL}")
                 wc
             }
             "fishing"     -> FishingScript(accessService, config, antiBan, detector)
@@ -101,6 +97,7 @@ class BotService : LifecycleService() {
         botJob = lifecycleScope.launch(Dispatchers.IO) {
             while (isActive && isRunning) {
 
+                // ── Auto-stop check ──────────────────────────────────────────
                 val stopReason = antiBan.checkAutoStop(startTimeMs, script.actions)
                 if (stopReason != null) {
                     withContext(Dispatchers.Main) {
@@ -110,21 +107,33 @@ class BotService : LifecycleService() {
                     break
                 }
 
+                // ── Break check ──────────────────────────────────────────────
                 if (antiBan.shouldBreak()) {
                     onBreak = true
-                    val jitter  = Random.nextLong(-5000L, 5000L)
-                    val breakMs = config.breakDurationMs + jitter
+                    val breakMs = config.breakDurationMs + Random.nextLong(-5_000L, 5_000L)
                     withContext(Dispatchers.Main) {
-                        updateOverlayStats(script, antiBan, "Break")
+                        updateOverlayStats(script, antiBan, "On Break")
                         statusListener?.invoke("On Break", true)
                     }
-                    delay(breakMs.coerceAtLeast(1000L))
+                    delay(breakMs.coerceAtLeast(1_000L))
                     antiBan.resetBreakCounter()
                     onBreak = false
                     withContext(Dispatchers.Main) { statusListener?.invoke("Running", true) }
                 }
 
                 if (!onBreak) {
+                    // ── Stuck detection ──────────────────────────────────────
+                    // Runs BEFORE tick() so we can recover before the next tick.
+                    if (script.isStuck()) {
+                        withContext(Dispatchers.Main) {
+                            Logger.warn("BotService: calling onStuck() for ${script.name}")
+                            statusListener?.invoke("Stuck — recovering…", true)
+                        }
+                        script.onStuck()
+                        delay(1_000L)   // brief pause so recovery doesn't loop instantly
+                    }
+
+                    // ── Normal tick ──────────────────────────────────────────
                     script.tick()
                     withContext(Dispatchers.Main) {
                         updateOverlayStats(script, antiBan, "Running")
@@ -135,6 +144,7 @@ class BotService : LifecycleService() {
         }
     }
 
+    // ── Stop bot ──────────────────────────────────────────────────────────────
     fun stopBot() {
         if (!isRunning) return
         isRunning = false
@@ -145,31 +155,25 @@ class BotService : LifecycleService() {
         updateNotification(null)
     }
 
-    // ── Walker area resolver ───────────────────────────────────────────────────
-    // Returns (treeLocation, bankLocation) for the given area id and script type.
-    // Returns (null, null) when area = "none" — the bot stays wherever it is.
-    private fun walkerLocationsFor(
-        area: String,
-        scriptId: String,
-    ): Pair<WalkerManager.Location?, WalkerManager.Location?> {
-        return when (area) {
-            "lumbridge"       -> WalkerManager.Location.LUMBRIDGE_TREES    to WalkerManager.Location.LUMBRIDGE_BANK
-            "draynor"         -> WalkerManager.Location.DRAYNOR_WILLOWS    to WalkerManager.Location.DRAYNOR_BANK
-            "varrock_west"    -> WalkerManager.Location.VARROCK_TREES_WEST to WalkerManager.Location.VARROCK_WEST_BANK
-            "varrock_east"    -> WalkerManager.Location.VARROCK_TREES_EAST to WalkerManager.Location.VARROCK_EAST_BANK
-            "falador"         -> WalkerManager.Location.FALADOR_PARK_TREES to WalkerManager.Location.FALADOR_WEST_BANK
-            "edgeville"       -> WalkerManager.Location.EDGEVILLE_TREES    to WalkerManager.Location.EDGEVILLE_BANK
-            "barbarian"       -> WalkerManager.Location.BARBARIAN_VILLAGE_TREES to WalkerManager.Location.EDGEVILLE_BANK
-            else              -> null to null
-        }
+    // ── Walker area resolver ──────────────────────────────────────────────────
+    private fun walkerLocationsFor(area: String):
+            Pair<WalkerManager.Location?, WalkerManager.Location?> = when (area) {
+        "lumbridge"    -> WalkerManager.Location.LUMBRIDGE_TREES    to WalkerManager.Location.LUMBRIDGE_BANK
+        "draynor"      -> WalkerManager.Location.DRAYNOR_WILLOWS    to WalkerManager.Location.DRAYNOR_BANK
+        "varrock_west" -> WalkerManager.Location.VARROCK_TREES_WEST to WalkerManager.Location.VARROCK_WEST_BANK
+        "varrock_east" -> WalkerManager.Location.VARROCK_TREES_EAST to WalkerManager.Location.VARROCK_EAST_BANK
+        "falador"      -> WalkerManager.Location.FALADOR_PARK_TREES to WalkerManager.Location.FALADOR_WEST_BANK
+        "edgeville"    -> WalkerManager.Location.EDGEVILLE_TREES    to WalkerManager.Location.EDGEVILLE_BANK
+        "barbarian"    -> WalkerManager.Location.BARBARIAN_VILLAGE_TREES to WalkerManager.Location.EDGEVILLE_BANK
+        else           -> null to null
     }
 
     // ── Stats & notifications ─────────────────────────────────────────────────
     private fun updateOverlayStats(script: BotScript, antiBan: AntiBanManager, status: String) {
-        val elapsed = (System.currentTimeMillis() - startTimeMs) / 1000L
+        val elapsed = (System.currentTimeMillis() - startTimeMs) / 1_000L
         val h = elapsed / 3600; val m = (elapsed % 3600) / 60; val s = elapsed % 60
         val runtime = "%02d:%02d:%02d".format(h, m, s)
-        val gpHr = if (elapsed > 0) (script.gpGained / (elapsed / 3600.0)).toInt() else 0
+        val gpHr    = if (elapsed > 0) (script.gpGained / (elapsed / 3600.0)).toInt() else 0
         overlay?.updateStats(
             script        = ScriptInfo.name(config.scriptId),
             actions       = script.actions,
@@ -185,14 +189,13 @@ class BotService : LifecycleService() {
         val text = if (script != null)
             "${ScriptInfo.name(config.scriptId)} | ${script.actions} actions"
         else "Idle"
-        val nm = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
-        nm.notify(1, buildNotification(text))
+        (getSystemService(NOTIFICATION_SERVICE) as NotificationManager)
+            .notify(1, buildNotification(text))
     }
 
     private fun buildNotification(text: String): Notification {
         val pi = PendingIntent.getActivity(
-            this, 0, Intent(this, MainActivity::class.java),
-            PendingIntent.FLAG_IMMUTABLE
+            this, 0, Intent(this, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE
         )
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_menu_compass)
@@ -204,10 +207,8 @@ class BotService : LifecycleService() {
     }
 
     private fun createNotificationChannel() {
-        val ch = NotificationChannel(
-            CHANNEL_ID, "OSRS Bot Service",
-            NotificationManager.IMPORTANCE_LOW
-        ).apply { description = "Running status" }
+        val ch = NotificationChannel(CHANNEL_ID, "OSRS Bot Service",
+            NotificationManager.IMPORTANCE_LOW).apply { description = "Running status" }
         (getSystemService(NOTIFICATION_SERVICE) as NotificationManager).createNotificationChannel(ch)
     }
 
