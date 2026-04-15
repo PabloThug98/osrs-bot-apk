@@ -11,13 +11,13 @@ import androidx.core.app.NotificationCompat
 import androidx.lifecycle.LifecycleService
 import androidx.lifecycle.lifecycleScope
 import com.osrsbot.autotrainer.antiban.AntiBanManager
-import com.osrsbot.autotrainer.antiban.StopReason
 import com.osrsbot.autotrainer.detector.ObjectDetector
 import com.osrsbot.autotrainer.overlay.OverlayManager
 import com.osrsbot.autotrainer.scripts.*
 import com.osrsbot.autotrainer.utils.BotConfig
 import com.osrsbot.autotrainer.utils.Logger
 import com.osrsbot.autotrainer.utils.ScriptInfo
+import com.osrsbot.autotrainer.walker.WalkerManager
 import kotlinx.coroutines.*
 import kotlin.random.Random
 
@@ -78,11 +78,19 @@ class BotService : LifecycleService() {
         Logger.ok("Bot starting: ${ScriptInfo.name(config.scriptId)}")
         statusListener?.invoke("Running", true)
 
-        val antiBan = AntiBanManager(config)
+        val antiBan  = AntiBanManager(config)
         val detector = ObjectDetector(accessService)
 
         val script: BotScript = when (config.scriptId) {
-            "woodcutting" -> WoodcuttingScript(accessService, config, antiBan, detector)
+            "woodcutting" -> {
+                val wc = WoodcuttingScript(accessService, config, antiBan, detector)
+                // Apply walker locations from the configured area
+                val (treeL, bankL) = walkerLocationsFor(config.walkerArea, "woodcutting")
+                wc.treeLocation = treeL
+                wc.bankLocation = bankL
+                if (treeL != null) Logger.ok("Walker: $bankL → $treeL")
+                wc
+            }
             "fishing"     -> FishingScript(accessService, config, antiBan, detector)
             "combat"      -> CombatScript(accessService, config, antiBan, detector)
             else          -> ChocolateDustScript(accessService, config, antiBan, detector)
@@ -104,7 +112,7 @@ class BotService : LifecycleService() {
 
                 if (antiBan.shouldBreak()) {
                     onBreak = true
-                    val jitter = Random.nextLong(-5000L, 5000L)
+                    val jitter  = Random.nextLong(-5000L, 5000L)
                     val breakMs = config.breakDurationMs + jitter
                     withContext(Dispatchers.Main) {
                         updateOverlayStats(script, antiBan, "Break")
@@ -137,18 +145,38 @@ class BotService : LifecycleService() {
         updateNotification(null)
     }
 
+    // ── Walker area resolver ───────────────────────────────────────────────────
+    // Returns (treeLocation, bankLocation) for the given area id and script type.
+    // Returns (null, null) when area = "none" — the bot stays wherever it is.
+    private fun walkerLocationsFor(
+        area: String,
+        scriptId: String,
+    ): Pair<WalkerManager.Location?, WalkerManager.Location?> {
+        return when (area) {
+            "lumbridge"       -> WalkerManager.Location.LUMBRIDGE_TREES    to WalkerManager.Location.LUMBRIDGE_BANK
+            "draynor"         -> WalkerManager.Location.DRAYNOR_WILLOWS    to WalkerManager.Location.DRAYNOR_BANK
+            "varrock_west"    -> WalkerManager.Location.VARROCK_TREES_WEST to WalkerManager.Location.VARROCK_WEST_BANK
+            "varrock_east"    -> WalkerManager.Location.VARROCK_TREES_EAST to WalkerManager.Location.VARROCK_EAST_BANK
+            "falador"         -> WalkerManager.Location.FALADOR_PARK_TREES to WalkerManager.Location.FALADOR_WEST_BANK
+            "edgeville"       -> WalkerManager.Location.EDGEVILLE_TREES    to WalkerManager.Location.EDGEVILLE_BANK
+            "barbarian"       -> WalkerManager.Location.BARBARIAN_VILLAGE_TREES to WalkerManager.Location.EDGEVILLE_BANK
+            else              -> null to null
+        }
+    }
+
+    // ── Stats & notifications ─────────────────────────────────────────────────
     private fun updateOverlayStats(script: BotScript, antiBan: AntiBanManager, status: String) {
         val elapsed = (System.currentTimeMillis() - startTimeMs) / 1000L
         val h = elapsed / 3600; val m = (elapsed % 3600) / 60; val s = elapsed % 60
         val runtime = "%02d:%02d:%02d".format(h, m, s)
         val gpHr = if (elapsed > 0) (script.gpGained / (elapsed / 3600.0)).toInt() else 0
         overlay?.updateStats(
-            script = ScriptInfo.name(config.scriptId),
-            actions = script.actions,
-            xp = script.xpGained,
-            gpHr = gpHr,
-            runtime = runtime,
-            status = status,
+            script        = ScriptInfo.name(config.scriptId),
+            actions       = script.actions,
+            xp            = script.xpGained,
+            gpHr          = gpHr,
+            runtime       = runtime,
+            status        = status,
             currentAction = script.currentAction,
         )
     }
