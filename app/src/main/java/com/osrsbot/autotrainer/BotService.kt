@@ -7,7 +7,9 @@ import android.app.PendingIntent
 import android.content.Intent
 import android.os.Binder
 import android.os.IBinder
+import android.content.pm.ServiceInfo
 import androidx.core.app.NotificationCompat
+import androidx.core.app.ServiceCompat
 import androidx.lifecycle.LifecycleService
 import androidx.lifecycle.lifecycleScope
 import com.osrsbot.autotrainer.antiban.AntiBanManager
@@ -65,7 +67,7 @@ class BotService : LifecycleService() {
     override fun onCreate() {
         super.onCreate()
         createNotificationChannel()
-        startForeground(1, buildNotification("Idle"))
+        ServiceCompat.startForeground(this, 1, buildNotification("Idle"), ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
         overlay = OverlayManager(applicationContext)
         Logger.ok("BotService created.")
     }
