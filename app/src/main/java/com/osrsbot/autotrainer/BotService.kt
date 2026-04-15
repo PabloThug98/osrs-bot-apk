@@ -18,6 +18,8 @@ import com.osrsbot.autotrainer.utils.BotConfig
 import com.osrsbot.autotrainer.utils.Logger
 import com.osrsbot.autotrainer.utils.ScriptInfo
 import com.osrsbot.autotrainer.walker.WalkerManager
+import android.media.projection.MediaProjection
+import com.osrsbot.autotrainer.capture.ScreenCaptureManager
 import kotlinx.coroutines.*
 import kotlin.random.Random
 
@@ -28,6 +30,7 @@ class BotService : LifecycleService() {
     }
 
     private val binder    = LocalBinder()
+    private var screenCapture: ScreenCaptureManager? = null
     private var overlay: OverlayManager? = null
     private var botJob: Job? = null
     private var config    = BotConfig()
@@ -71,6 +74,12 @@ class BotService : LifecycleService() {
             .apply()
     }
 
+    fun setMediaProjection(projection: MediaProjection) {
+        val sc = ScreenCaptureManager(applicationContext).also { screenCapture = it }
+        sc.start(projection)
+        Logger.ok("BotService: screen capture started.")
+    }
+
     fun showOverlay() {
         overlay?.show(onStart = { startBot() }, onStop = { stopBot() })
     }
@@ -94,7 +103,7 @@ class BotService : LifecycleService() {
         statusListener?.invoke("Running", true)
 
         val antiBan  = AntiBanManager(config)
-        val detector = ObjectDetector(accessService)
+        val detector = ObjectDetector(accessService, screenCapture)
 
         val script: BotScript = when (config.scriptId) {
             "woodcutting" -> {
@@ -261,6 +270,7 @@ class BotService : LifecycleService() {
 
     override fun onDestroy() {
         stopBot()
+        screenCapture?.stop()
         overlay?.hide()
         super.onDestroy()
     }
