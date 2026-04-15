@@ -1,19 +1,24 @@
 package com.osrsbot.autotrainer
 
+import android.app.AlarmManager
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Intent
+import android.content.pm.ServiceInfo
 import android.os.Binder
 import android.os.IBinder
-import android.content.pm.ServiceInfo
+import android.os.SystemClock
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
 import androidx.lifecycle.LifecycleService
 import androidx.lifecycle.lifecycleScope
 import com.osrsbot.autotrainer.antiban.AntiBanManager
+import com.osrsbot.autotrainer.capture.ScreenCaptureManager
+import com.osrsbot.autotrainer.detector.GameStateDetector
 import com.osrsbot.autotrainer.detector.ObjectDetector
+import com.osrsbot.autotrainer.overlay.DebugOverlay
 import com.osrsbot.autotrainer.overlay.OverlayManager
 import com.osrsbot.autotrainer.scripts.*
 import com.osrsbot.autotrainer.utils.BotConfig
@@ -21,9 +26,6 @@ import com.osrsbot.autotrainer.utils.Logger
 import com.osrsbot.autotrainer.utils.ScriptInfo
 import com.osrsbot.autotrainer.walker.WalkerManager
 import android.media.projection.MediaProjection
-import com.osrsbot.autotrainer.capture.ScreenCaptureManager
-import com.osrsbot.autotrainer.detector.GameStateDetector
-import com.osrsbot.autotrainer.overlay.DebugOverlay
 import kotlinx.coroutines.*
 import kotlin.random.Random
 
@@ -44,6 +46,9 @@ class BotService : LifecycleService() {
     private var onBreak   = false
     private var recoveryCount = 0
 
+    // Track whether we are being destroyed intentionally (stopSelf) or by the OS
+    private var intentionalStop = false
+
     var isRunning = false
         private set
 
@@ -55,9 +60,7 @@ class BotService : LifecycleService() {
     }
 
     /**
-     * Return START_STICKY so the OS automatically restarts BotService
-     * if it is killed under memory pressure while the bot is running.
-     * LifecycleService does not guarantee this without an explicit override.
+     * START_STICKY: OS restarts the service if killed under memory pressure.
      */
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         super.onStartCommand(intent, flags, startId)
@@ -67,9 +70,30 @@ class BotService : LifecycleService() {
     override fun onCreate() {
         super.onCreate()
         createNotificationChannel()
-        ServiceCompat.startForeground(this, 1, buildNotification("Idle"), ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
+        ServiceCompat.startForeground(
+            this, 1, buildNotification("Idle"),
+            ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
+        )
         overlay = OverlayManager(applicationContext)
         Logger.ok("BotService created.")
+    }
+
+    /**
+     * Called when the user swipes the app from the Recents screen.
+     * Schedule a restart via AlarmManager so the overlay + service survive.
+     */
+    override fun onTaskRemoved(rootIntent: Intent?) {
+        super.onTaskRemoved(rootIntent)
+        Logger.warn("onTaskRemoved — scheduling service restart.")
+        val restartIntent = Intent(applicationContext, BotService::class.java).also {
+            it.setPackage(packageName)
+        }
+        val restartPending = PendingIntent.getService(
+            applicationContext, 1, restartIntent,
+            PendingIntent.FLAG_ONE_SHOT or PendingIntent.FLAG_IMMUTABLE
+        )
+        val alarm = getSystemService(ALARM_SERVICE) as AlarmManager
+        alarm.set(AlarmManager.ELAPSED_REALTIME, SystemClock.elapsedRealtime() + 1_000L, restartPending)
     }
 
     fun updateConfig(newConfig: BotConfig) {
@@ -108,10 +132,10 @@ class BotService : LifecycleService() {
             statusListener?.invoke("Accessibility service not enabled", false)
             return
         }
-        isRunning   = true
-        onBreak     = false
+        isRunning     = true
+        onBreak       = false
         recoveryCount = 0
-        startTimeMs = System.currentTimeMillis()
+        startTimeMs   = System.currentTimeMillis()
         Logger.ok("Bot starting: ${ScriptInfo.name(config.scriptId)}")
         statusListener?.invoke("Running", true)
 
@@ -164,7 +188,6 @@ class BotService : LifecycleService() {
 
                 if (!onBreak) {
                     // ── Stuck detection ──────────────────────────────────────
-                    // Runs BEFORE tick() so we can recover before the next tick.
                     if (script.isStuck()) {
                         withContext(Dispatchers.Main) {
                             Logger.warn("BotService: calling onStuck() for ${script.name}")
@@ -172,7 +195,7 @@ class BotService : LifecycleService() {
                         }
                         recoveryCount++
                         script.onStuck()
-                        delay(1_000L)   // brief pause so recovery doesn't loop instantly
+                        delay(1_000L)
                         if (recoveryCount >= MAX_RECOVERIES_PER_RUN) {
                             withContext(Dispatchers.Main) {
                                 Logger.error("Too many recoveries in one run — stopping bot to prevent bad clicks.")
@@ -183,8 +206,7 @@ class BotService : LifecycleService() {
                         }
                     }
 
-                    // ── Normal tick ──────────────────────────────────────────
-                    // ── game-state guard ────────────────────────────────────────
+                    // ── game-state guard ─────────────────────────────────────
                     val gs = gameStateDetector?.getState()
                     if (gs == GameStateDetector.GameState.LOGIN_SCREEN || gs == GameStateDetector.GameState.LOADING) {
                         withContext(Dispatchers.Main) { statusListener?.invoke("Waiting: ${gs?.name}", true) }
@@ -192,7 +214,7 @@ class BotService : LifecycleService() {
                     }
                     if (gs == GameStateDetector.GameState.LEVEL_UP) delay(2_200L)
 
-                    // ── debug overlay ────────────────────────────────────────────
+                    // ── debug overlay ─────────────────────────────────────────
                     if (debugOverlay?.isShowing == true) withContext(Dispatchers.Main) {
                         debugOverlay?.updateObjects(script.currentDetectedObjects)
                     }
