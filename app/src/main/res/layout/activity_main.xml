@@ -4,447 +4,786 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/bg_dark"
-    android:fillViewport="true">
+    android:fillViewport="true"
+    android:scrollbarStyle="outsideOverlay">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:padding="16dp">
+        android:orientation="vertical">
 
-        <!-- Header -->
+        <!-- ══════════════════════════════════════════════════════════ -->
+        <!-- HEADER                                                      -->
+        <!-- ══════════════════════════════════════════════════════════ -->
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="80dp"
             android:orientation="horizontal"
             android:gravity="center_vertical"
-            android:paddingBottom="16dp">
+            android:background="@drawable/header_bg"
+            android:paddingStart="20dp"
+            android:paddingEnd="20dp"
+            android:elevation="4dp">
 
-            <TextView
+            <!-- Logo block -->
+            <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="OSRS Bot"
-                android:textColor="@color/gold"
-                android:textSize="22sp"
-                android:textStyle="bold" />
+                android:orientation="vertical">
 
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="⚔ OSRS BOT"
+                    android:textColor="@color/gold"
+                    android:textSize="22sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.05" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="F2P AUTOMATION SUITE"
+                    android:textColor="@color/text_muted"
+                    android:textSize="9sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.15" />
+            </LinearLayout>
+
+            <!-- Version badge -->
             <TextView
                 android:id="@+id/tvVersion"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="v2.1"
-                android:textColor="@color/text_muted"
-                android:textSize="12sp" />
-        </LinearLayout>
-
-        <!-- Permissions Card -->
-        <LinearLayout
-            android:id="@+id/cardPermissions"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:background="@drawable/card_bg"
-            android:padding="14dp"
-            android:layout_marginBottom="12dp">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="🔐 PERMISSIONS"
                 android:textColor="@color/gold"
                 android:textSize="11sp"
                 android:textStyle="bold"
-                android:letterSpacing="0.1"
-                android:layout_marginBottom="12dp" />
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:layout_marginBottom="10dp">
-
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="Overlay Permission"
-                    android:textColor="@color/text_primary"
-                    android:textSize="13sp" />
-
-                <TextView
-                    android:id="@+id/tvOverlayStatus"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="❌ Not Granted"
-                    android:textColor="@color/red"
-                    android:textSize="12sp" />
-            </LinearLayout>
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:layout_marginBottom="14dp">
-
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="Accessibility Service"
-                    android:textColor="@color/text_primary"
-                    android:textSize="13sp" />
-
-                <TextView
-                    android:id="@+id/tvAccessibilityStatus"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="❌ Not Enabled"
-                    android:textColor="@color/red"
-                    android:textSize="12sp" />
-            </LinearLayout>
-
-            <Button
-                android:id="@+id/btnGrantPermissions"
-                android:layout_width="match_parent"
-                android:layout_height="48dp"
-                android:text="Grant Permissions"
-                android:backgroundTint="@color/gold"
-                android:textColor="@color/bg_dark"
-                android:textStyle="bold" />
-        </LinearLayout>
-
-        <!-- Script Select Card -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:background="@drawable/card_bg"
-            android:padding="14dp"
-            android:layout_marginBottom="12dp">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="📜 SELECT SCRIPT"
-                android:textColor="@color/gold"
-                android:textSize="11sp"
-                android:textStyle="bold"
-                android:letterSpacing="0.1"
-                android:layout_marginBottom="12dp" />
-
-            <RadioGroup
-                android:id="@+id/rgScripts"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical">
-
-                <RadioButton
-                    android:id="@+id/rbChocolate"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="🍫 Chocolate Dust Maker  (~180K GP/hr)"
-                    android:textColor="@color/text_primary"
-                    android:buttonTint="@color/gold"
-                    android:paddingStart="8dp"
-                    android:layout_marginBottom="8dp"
-                    android:checked="true" />
-
-                <RadioButton
-                    android:id="@+id/rbWoodcutting"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="🌲 Woodcutting Bot  (XP + Logs)"
-                    android:textColor="@color/text_primary"
-                    android:buttonTint="@color/gold"
-                    android:paddingStart="8dp"
-                    android:layout_marginBottom="8dp" />
-
-                <RadioButton
-                    android:id="@+id/rbFishing"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="🎣 Fishing Bot  (XP + Fish)"
-                    android:textColor="@color/text_primary"
-                    android:buttonTint="@color/gold"
-                    android:paddingStart="8dp"
-                    android:layout_marginBottom="8dp" />
-
-                <RadioButton
-                    android:id="@+id/rbCombat"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="⚔️ Combat Trainer  (XP + Loot)"
-                    android:textColor="@color/text_primary"
-                    android:buttonTint="@color/gold"
-                    android:paddingStart="8dp" />
-            </RadioGroup>
-        </LinearLayout>
-
-        <!-- Walker Area Card (for Woodcutting, Fishing, Combat) -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:background="@drawable/card_bg"
-            android:padding="14dp"
-            android:layout_marginBottom="12dp">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="🗺️ AUTO WALKER AREA  (F2P)"
-                android:textColor="@color/gold"
-                android:textSize="11sp"
-                android:textStyle="bold"
-                android:letterSpacing="0.1"
-                android:layout_marginBottom="4dp" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Bot walks between trees and bank automatically via minimap"
-                android:textColor="@color/text_muted"
-                android:textSize="11sp"
-                android:layout_marginBottom="10dp" />
-
-            <!-- Spinner wrapping a styled background -->
-            <Spinner
-                android:id="@+id/spinnerWalkerArea"
-                android:layout_width="match_parent"
-                android:layout_height="44dp"
-                android:background="@drawable/card_bg"
+                android:background="@drawable/badge_green_bg"
                 android:paddingStart="10dp"
                 android:paddingEnd="10dp"
-                android:popupBackground="@color/bg_card"
-                android:spinnerMode="dropdown" />
-
-            <TextView
-                android:id="@+id/tvWalkerNote"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="None — bot stays where you put it. Use 🎯 to tap trees manually."
-                android:textColor="@color/text_muted"
-                android:textSize="11sp"
-                android:layout_marginTop="6dp" />
+                android:paddingTop="4dp"
+                android:paddingBottom="4dp" />
         </LinearLayout>
 
-        <!-- Antiban Card -->
+        <!-- ══════════════════════════════════════════════════════════ -->
+        <!-- CONTENT AREA                                               -->
+        <!-- ══════════════════════════════════════════════════════════ -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:background="@drawable/card_bg"
-            android:padding="14dp"
-            android:layout_marginBottom="12dp">
+            android:padding="16dp">
 
-            <TextView
-                android:layout_width="wrap_content"
+            <!-- ────────────────────────────────────────────────────── -->
+            <!-- PERMISSIONS CARD                                        -->
+            <!-- ────────────────────────────────────────────────────── -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardPermissions"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="🛡️ ANTIBAN"
-                android:textColor="@color/gold"
-                android:textSize="11sp"
+                android:layout_marginBottom="14dp"
+                app:cardBackgroundColor="#121929"
+                app:cardElevation="10dp"
+                app:cardCornerRadius="16dp"
+                app:strokeColor="#1C2840"
+                app:strokeWidth="1dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="18dp">
+
+                    <!-- Section label -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:layout_marginBottom="16dp">
+
+                        <View
+                            android:layout_width="3dp"
+                            android:layout_height="16dp"
+                            android:background="@drawable/accent_bar"
+                            android:layout_marginEnd="10dp" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="PERMISSIONS"
+                            style="@style/SectionLabel" />
+                    </LinearLayout>
+
+                    <!-- Overlay row -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="48dp"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:background="@drawable/script_card_bg"
+                        android:paddingStart="14dp"
+                        android:paddingEnd="14dp"
+                        android:layout_marginBottom="8dp">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Overlay Permission"
+                            android:textColor="@color/text_primary"
+                            android:textSize="13sp" />
+
+                        <TextView
+                            android:id="@+id/tvOverlayStatus"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="❌  Not Granted"
+                            android:textColor="@color/red"
+                            android:textSize="11sp"
+                            android:textStyle="bold"
+                            android:background="@drawable/badge_red_bg"
+                            android:paddingStart="10dp"
+                            android:paddingEnd="10dp"
+                            android:paddingTop="4dp"
+                            android:paddingBottom="4dp" />
+                    </LinearLayout>
+
+                    <!-- Accessibility row -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="48dp"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:background="@drawable/script_card_bg"
+                        android:paddingStart="14dp"
+                        android:paddingEnd="14dp"
+                        android:layout_marginBottom="16dp">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Accessibility Service"
+                            android:textColor="@color/text_primary"
+                            android:textSize="13sp" />
+
+                        <TextView
+                            android:id="@+id/tvAccessibilityStatus"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="❌  Not Enabled"
+                            android:textColor="@color/red"
+                            android:textSize="11sp"
+                            android:textStyle="bold"
+                            android:background="@drawable/badge_red_bg"
+                            android:paddingStart="10dp"
+                            android:paddingEnd="10dp"
+                            android:paddingTop="4dp"
+                            android:paddingBottom="4dp" />
+                    </LinearLayout>
+
+                    <!-- Grant button -->
+                    <Button
+                        android:id="@+id/btnGrantPermissions"
+                        android:layout_width="match_parent"
+                        android:layout_height="48dp"
+                        android:text="GRANT PERMISSIONS"
+                        android:background="@drawable/btn_gold_bg"
+                        android:textColor="@color/text_dark"
+                        android:textStyle="bold"
+                        android:textSize="13sp"
+                        android:letterSpacing="0.05"
+                        android:elevation="4dp"
+                        android:stateListAnimator="@null" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- ────────────────────────────────────────────────────── -->
+            <!-- SELECT SCRIPT CARD                                     -->
+            <!-- ────────────────────────────────────────────────────── -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="14dp"
+                app:cardBackgroundColor="#121929"
+                app:cardElevation="10dp"
+                app:cardCornerRadius="16dp"
+                app:strokeColor="#1C2840"
+                app:strokeWidth="1dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="18dp">
+
+                    <!-- Section label -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:layout_marginBottom="16dp">
+
+                        <View
+                            android:layout_width="3dp"
+                            android:layout_height="16dp"
+                            android:background="@drawable/accent_bar"
+                            android:layout_marginEnd="10dp" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="SELECT SCRIPT"
+                            style="@style/SectionLabel" />
+                    </LinearLayout>
+
+                    <!-- Script list — 2 columns per row -->
+                    <RadioGroup
+                        android:id="@+id/rgScripts"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical">
+
+                        <!-- Row 1 -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:layout_marginBottom="8dp">
+
+                            <!-- Chocolate -->
+                            <LinearLayout
+                                android:layout_width="0dp"
+                                android:layout_weight="1"
+                                android:layout_height="wrap_content"
+                                android:orientation="vertical"
+                                android:background="@drawable/script_card_bg"
+                                android:padding="12dp"
+                                android:layout_marginEnd="6dp">
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="🍫"
+                                    android:textSize="26sp"
+                                    android:layout_marginBottom="4dp" />
+
+                                <RadioButton
+                                    android:id="@+id/rbChocolate"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="Chocolate"
+                                    android:textColor="@color/text_primary"
+                                    android:textSize="12sp"
+                                    android:textStyle="bold"
+                                    android:buttonTint="@color/gold"
+                                    android:checked="true" />
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="~180K GP/hr"
+                                    android:textColor="@color/green"
+                                    android:textSize="10sp"
+                                    android:paddingStart="24dp" />
+                            </LinearLayout>
+
+                            <!-- Woodcutting -->
+                            <LinearLayout
+                                android:layout_width="0dp"
+                                android:layout_weight="1"
+                                android:layout_height="wrap_content"
+                                android:orientation="vertical"
+                                android:background="@drawable/script_card_bg"
+                                android:padding="12dp"
+                                android:layout_marginStart="6dp">
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="🌲"
+                                    android:textSize="26sp"
+                                    android:layout_marginBottom="4dp" />
+
+                                <RadioButton
+                                    android:id="@+id/rbWoodcutting"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="Woodcutting"
+                                    android:textColor="@color/text_primary"
+                                    android:textSize="12sp"
+                                    android:textStyle="bold"
+                                    android:buttonTint="@color/gold" />
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="XP + Logs"
+                                    android:textColor="@color/orange"
+                                    android:textSize="10sp"
+                                    android:paddingStart="24dp" />
+                            </LinearLayout>
+                        </LinearLayout>
+
+                        <!-- Row 2 -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal">
+
+                            <!-- Fishing -->
+                            <LinearLayout
+                                android:layout_width="0dp"
+                                android:layout_weight="1"
+                                android:layout_height="wrap_content"
+                                android:orientation="vertical"
+                                android:background="@drawable/script_card_bg"
+                                android:padding="12dp"
+                                android:layout_marginEnd="6dp">
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="🎣"
+                                    android:textSize="26sp"
+                                    android:layout_marginBottom="4dp" />
+
+                                <RadioButton
+                                    android:id="@+id/rbFishing"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="Fishing"
+                                    android:textColor="@color/text_primary"
+                                    android:textSize="12sp"
+                                    android:textStyle="bold"
+                                    android:buttonTint="@color/gold" />
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="XP + Fish"
+                                    android:textColor="@color/blue"
+                                    android:textSize="10sp"
+                                    android:paddingStart="24dp" />
+                            </LinearLayout>
+
+                            <!-- Combat -->
+                            <LinearLayout
+                                android:layout_width="0dp"
+                                android:layout_weight="1"
+                                android:layout_height="wrap_content"
+                                android:orientation="vertical"
+                                android:background="@drawable/script_card_bg"
+                                android:padding="12dp"
+                                android:layout_marginStart="6dp">
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="⚔️"
+                                    android:textSize="26sp"
+                                    android:layout_marginBottom="4dp" />
+
+                                <RadioButton
+                                    android:id="@+id/rbCombat"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="Combat"
+                                    android:textColor="@color/text_primary"
+                                    android:textSize="12sp"
+                                    android:textStyle="bold"
+                                    android:buttonTint="@color/gold" />
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="XP + Loot"
+                                    android:textColor="@color/red"
+                                    android:textSize="10sp"
+                                    android:paddingStart="24dp" />
+                            </LinearLayout>
+                        </LinearLayout>
+
+                    </RadioGroup>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- ────────────────────────────────────────────────────── -->
+            <!-- WALKER AREA CARD                                        -->
+            <!-- ────────────────────────────────────────────────────── -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="14dp"
+                app:cardBackgroundColor="#121929"
+                app:cardElevation="10dp"
+                app:cardCornerRadius="16dp"
+                app:strokeColor="#1C2840"
+                app:strokeWidth="1dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="18dp">
+
+                    <!-- Section label -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:layout_marginBottom="6dp">
+
+                        <View
+                            android:layout_width="3dp"
+                            android:layout_height="16dp"
+                            android:background="@drawable/accent_bar"
+                            android:layout_marginEnd="10dp" />
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="AUTO WALKER  (F2P)"
+                            style="@style/SectionLabel" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="MINIMAP"
+                            android:textColor="@color/blue"
+                            android:textSize="9sp"
+                            android:textStyle="bold"
+                            android:background="@drawable/badge_green_bg"
+                            android:paddingStart="8dp"
+                            android:paddingEnd="8dp"
+                            android:paddingTop="3dp"
+                            android:paddingBottom="3dp" />
+                    </LinearLayout>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Automatically walks between trees and bank via minimap taps"
+                        android:textColor="@color/text_muted"
+                        android:textSize="11sp"
+                        android:layout_marginBottom="12dp" />
+
+                    <Spinner
+                        android:id="@+id/spinnerWalkerArea"
+                        android:layout_width="match_parent"
+                        android:layout_height="52dp"
+                        android:background="@drawable/script_card_bg"
+                        android:paddingStart="14dp"
+                        android:paddingEnd="14dp"
+                        android:popupBackground="@color/bg_card_mid"
+                        android:spinnerMode="dropdown" />
+
+                    <TextView
+                        android:id="@+id/tvWalkerNote"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="None — stays where you put it. Tap 🎯 to mark trees manually."
+                        android:textColor="@color/text_muted"
+                        android:textSize="11sp"
+                        android:layout_marginTop="8dp" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- ────────────────────────────────────────────────────── -->
+            <!-- ANTIBAN CARD                                            -->
+            <!-- ────────────────────────────────────────────────────── -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="14dp"
+                app:cardBackgroundColor="#121929"
+                app:cardElevation="10dp"
+                app:cardCornerRadius="16dp"
+                app:strokeColor="#1C2840"
+                app:strokeWidth="1dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="18dp">
+
+                    <!-- Section label -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:layout_marginBottom="16dp">
+
+                        <View
+                            android:layout_width="3dp"
+                            android:layout_height="16dp"
+                            android:background="@drawable/accent_bar"
+                            android:layout_marginEnd="10dp" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="ANTIBAN  PROTECTION"
+                            style="@style/SectionLabel" />
+                    </LinearLayout>
+
+                    <!-- Auto breaks -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="52dp"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:background="@drawable/script_card_bg"
+                        android:paddingStart="14dp"
+                        android:paddingEnd="14dp"
+                        android:layout_marginBottom="8dp">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Auto breaks"
+                            android:textColor="@color/text_primary"
+                            android:textSize="13sp" />
+
+                        <com.google.android.material.switchmaterial.SwitchMaterial
+                            android:id="@+id/switchBreaks"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:checked="true"
+                            app:trackTint="@color/gold_dark"
+                            app:thumbTint="@color/gold" />
+                    </LinearLayout>
+
+                    <!-- Stop on player nearby -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="52dp"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:background="@drawable/script_card_bg"
+                        android:paddingStart="14dp"
+                        android:paddingEnd="14dp"
+                        android:layout_marginBottom="8dp">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Stop when player nearby"
+                            android:textColor="@color/text_primary"
+                            android:textSize="13sp" />
+
+                        <com.google.android.material.switchmaterial.SwitchMaterial
+                            android:id="@+id/switchStopPlayer"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:checked="true"
+                            app:trackTint="@color/gold_dark"
+                            app:thumbTint="@color/gold" />
+                    </LinearLayout>
+
+                    <!-- Human-like mouse -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="52dp"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:background="@drawable/script_card_bg"
+                        android:paddingStart="14dp"
+                        android:paddingEnd="14dp">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Human-like timing"
+                            android:textColor="@color/text_primary"
+                            android:textSize="13sp" />
+
+                        <com.google.android.material.switchmaterial.SwitchMaterial
+                            android:id="@+id/switchHuman"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:checked="true"
+                            app:trackTint="@color/gold_dark"
+                            app:thumbTint="@color/gold" />
+                    </LinearLayout>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- ────────────────────────────────────────────────────── -->
+            <!-- AUTO-STOP CARD                                          -->
+            <!-- ────────────────────────────────────────────────────── -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="20dp"
+                app:cardBackgroundColor="#121929"
+                app:cardElevation="10dp"
+                app:cardCornerRadius="16dp"
+                app:strokeColor="#1C2840"
+                app:strokeWidth="1dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="18dp">
+
+                    <!-- Section label -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:layout_marginBottom="16dp">
+
+                        <View
+                            android:layout_width="3dp"
+                            android:layout_height="16dp"
+                            android:background="@drawable/accent_bar"
+                            android:layout_marginEnd="10dp" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="AUTO-STOP"
+                            style="@style/SectionLabel" />
+                    </LinearLayout>
+
+                    <!-- Time limit row -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="52dp"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:background="@drawable/script_card_bg"
+                        android:paddingStart="14dp"
+                        android:paddingEnd="14dp"
+                        android:layout_marginBottom="10dp">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Stop after time limit"
+                            android:textColor="@color/text_primary"
+                            android:textSize="13sp" />
+
+                        <com.google.android.material.switchmaterial.SwitchMaterial
+                            android:id="@+id/switchStopTime"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            app:trackTint="@color/gold_dark"
+                            app:thumbTint="@color/gold" />
+                    </LinearLayout>
+
+                    <SeekBar
+                        android:id="@+id/seekStopTime"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:max="480"
+                        android:progress="60"
+                        android:progressTint="@color/gold"
+                        android:thumbTint="@color/gold"
+                        android:layout_marginBottom="4dp" />
+
+                    <TextView
+                        android:id="@+id/tvStopTime"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Stop after: 60 minutes"
+                        android:textColor="@color/text_muted"
+                        android:textSize="11sp"
+                        android:layout_marginBottom="16dp" />
+
+                    <!-- Action limit row -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="52dp"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:background="@drawable/script_card_bg"
+                        android:paddingStart="14dp"
+                        android:paddingEnd="14dp"
+                        android:layout_marginBottom="10dp">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Stop after action count"
+                            android:textColor="@color/text_primary"
+                            android:textSize="13sp" />
+
+                        <com.google.android.material.switchmaterial.SwitchMaterial
+                            android:id="@+id/switchStopActions"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            app:trackTint="@color/gold_dark"
+                            app:thumbTint="@color/gold" />
+                    </LinearLayout>
+
+                    <SeekBar
+                        android:id="@+id/seekStopActions"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:max="5000"
+                        android:progress="500"
+                        android:progressTint="@color/gold"
+                        android:thumbTint="@color/gold"
+                        android:layout_marginBottom="4dp" />
+
+                    <TextView
+                        android:id="@+id/tvStopActions"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Stop after: 500 actions"
+                        android:textColor="@color/text_muted"
+                        android:textSize="11sp" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- ────────────────────────────────────────────────────── -->
+            <!-- LAUNCH BUTTON  (gold 3D raised)                        -->
+            <!-- ────────────────────────────────────────────────────── -->
+            <Button
+                android:id="@+id/btnLaunchOverlay"
+                android:layout_width="match_parent"
+                android:layout_height="64dp"
+                android:text="🚀  LAUNCH FLOATING OVERLAY"
+                android:background="@drawable/btn_gold_bg"
+                android:textColor="@color/text_dark"
                 android:textStyle="bold"
-                android:letterSpacing="0.1"
-                android:layout_marginBottom="12dp" />
+                android:textSize="15sp"
+                android:letterSpacing="0.04"
+                android:elevation="6dp"
+                android:translationZ="4dp"
+                android:stateListAnimator="@null"
+                android:layout_marginBottom="10dp" />
 
-            <LinearLayout
+            <!-- Settings link -->
+            <Button
+                android:id="@+id/btnOpenAccessibility"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:layout_marginBottom="10dp">
+                android:layout_height="48dp"
+                android:text="Open Accessibility Settings"
+                android:background="@drawable/btn_ghost_bg"
+                android:textColor="@color/text_secondary"
+                android:textSize="12sp"
+                android:elevation="0dp"
+                android:stateListAnimator="@null"
+                android:layout_marginBottom="28dp" />
 
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="Auto breaks"
-                    android:textColor="@color/text_primary"
-                    android:textSize="13sp" />
-
-                <Switch
-                    android:id="@+id/switchBreaks"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:checked="true"
-                    android:thumbTint="@color/gold"
-                    android:trackTint="@color/border" />
-            </LinearLayout>
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:layout_marginBottom="10dp">
-
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="Auto-stop on player nearby"
-                    android:textColor="@color/text_primary"
-                    android:textSize="13sp" />
-
-                <Switch
-                    android:id="@+id/switchStopPlayer"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:checked="true"
-                    android:thumbTint="@color/gold"
-                    android:trackTint="@color/border" />
-            </LinearLayout>
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="center_vertical">
-
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="Human-like mouse speed"
-                    android:textColor="@color/text_primary"
-                    android:textSize="13sp" />
-
-                <Switch
-                    android:id="@+id/switchHuman"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:checked="true"
-                    android:thumbTint="@color/gold"
-                    android:trackTint="@color/border" />
-            </LinearLayout>
         </LinearLayout>
-
-        <!-- Auto Stop Card -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:background="@drawable/card_bg"
-            android:padding="14dp"
-            android:layout_marginBottom="12dp">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="🛑 AUTO-STOP"
-                android:textColor="@color/gold"
-                android:textSize="11sp"
-                android:textStyle="bold"
-                android:letterSpacing="0.1"
-                android:layout_marginBottom="12dp" />
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:layout_marginBottom="10dp">
-
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="Stop after time limit"
-                    android:textColor="@color/text_primary"
-                    android:textSize="13sp" />
-
-                <Switch
-                    android:id="@+id/switchStopTime"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:thumbTint="@color/gold"
-                    android:trackTint="@color/border" />
-            </LinearLayout>
-
-            <SeekBar
-                android:id="@+id/seekStopTime"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:max="480"
-                android:progress="60"
-                android:progressTint="@color/gold"
-                android:thumbTint="@color/gold"
-                android:layout_marginBottom="4dp" />
-
-            <TextView
-                android:id="@+id/tvStopTime"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Stop after: 60 minutes"
-                android:textColor="@color/text_muted"
-                android:textSize="11sp"
-                android:layout_marginBottom="12dp" />
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:layout_marginBottom="10dp">
-
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="Stop after action count"
-                    android:textColor="@color/text_primary"
-                    android:textSize="13sp" />
-
-                <Switch
-                    android:id="@+id/switchStopActions"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:thumbTint="@color/gold"
-                    android:trackTint="@color/border" />
-            </LinearLayout>
-
-            <SeekBar
-                android:id="@+id/seekStopActions"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:max="5000"
-                android:progress="500"
-                android:progressTint="@color/gold"
-                android:thumbTint="@color/gold"
-                android:layout_marginBottom="4dp" />
-
-            <TextView
-                android:id="@+id/tvStopActions"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Stop after: 500 actions"
-                android:textColor="@color/text_muted"
-                android:textSize="11sp" />
-        </LinearLayout>
-
-        <!-- Launch Button -->
-        <Button
-            android:id="@+id/btnLaunchOverlay"
-            android:layout_width="match_parent"
-            android:layout_height="56dp"
-            android:text="🚀 LAUNCH FLOATING OVERLAY"
-            android:backgroundTint="@color/green"
-            android:textColor="#FFFFFF"
-            android:textStyle="bold"
-            android:textSize="15sp"
-            android:layout_marginBottom="12dp" />
-
-        <Button
-            android:id="@+id/btnOpenAccessibility"
-            android:layout_width="match_parent"
-            android:layout_height="48dp"
-            android:text="Open Accessibility Settings"
-            android:backgroundTint="@color/bg_card"
-            android:textColor="@color/gold"
-            android:layout_marginBottom="24dp" />
-
     </LinearLayout>
 </ScrollView>
