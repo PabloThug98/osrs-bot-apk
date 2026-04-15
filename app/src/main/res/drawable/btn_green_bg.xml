@@ -1,5 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
-<shape xmlns:android="http://schemas.android.com/apk/res/android">
-    <solid android:color="#4CAF50" />
-    <corners android:radius="4dp" />
-</shape>
+<!-- Green 3D action button -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:top="3dp">
+        <shape>
+            <solid android:color="#99001A0B" />
+            <corners android:radius="10dp" />
+        </shape>
+    </item>
+    <item android:bottom="3dp">
+        <shape>
+            <gradient
+                android:startColor="#00E676"
+                android:endColor="#00A854"
+                android:angle="270" />
+            <corners android:radius="10dp" />
+        </shape>
+    </item>
+</layer-list>
